@@ -8,10 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
+    "lint:fix": "eslint --fix",
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
-    "@repo/ui": "workspace:*",
     "next": "16.0.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
