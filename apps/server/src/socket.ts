@@ -1,10 +1,7 @@
 import { wss } from "./app";
 import logger from "./config/logger";
 
-const connections = new Map();
-const users = new Map();
-
-wss.on("connection", (ws, req) => {
+wss.on("connection", (ws) => {
   // const origin = req.headers.origin;
 
   // if (

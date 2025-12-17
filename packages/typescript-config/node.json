@@ -2,7 +2,6 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "./base.json",
   "compilerOptions": {
-    "noEmit": true,
     "module": "ESNext",
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "Bundler"
