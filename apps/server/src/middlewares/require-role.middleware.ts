@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import logger from "../config/logger";
+import { logger } from "@repo/observability";
 
 export function requireRole(role: "admin" | "user") {
   return (req: Request, res: Response, next: NextFunction) => {

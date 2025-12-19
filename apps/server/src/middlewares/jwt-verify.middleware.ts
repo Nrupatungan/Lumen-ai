@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import logger from "../config/logger";
+import { logger } from "@repo/observability";
 
 type UserPayload = {
   id: string;
