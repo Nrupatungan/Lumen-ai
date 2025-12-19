@@ -1,5 +1,5 @@
-import { wss } from "./app";
-import logger from "./config/logger";
+import { wss } from "./app.js";
+import { logger } from "@repo/observability";
 
 wss.on("connection", (ws) => {
   // const origin = req.headers.origin;
