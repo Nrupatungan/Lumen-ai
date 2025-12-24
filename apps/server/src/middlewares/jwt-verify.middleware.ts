@@ -14,7 +14,7 @@ export function authenticateJWT(
   res: Response,
   next: NextFunction,
 ) {
-  const header = req.headers.authorization;
+  const header = req.headers.authorization || req.headers["authorization"];
   const token = header?.startsWith("Bearer ") ? header.split(" ")[1] : null;
 
   if (!token) {
