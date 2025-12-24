@@ -25,20 +25,17 @@ const UserSchema = new Schema<IUser>(
     emailVerified: { type: Date },
     image: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /* 🔐 Password Hashing */
 UserSchema.pre("save", async function () {
   if (!this.isModified("password") || !this.password) return;
 
-  const salt = await bcrypt.genSalt(
-    Number(process.env.SALT_ROUNDS) || 10
-  );
+  const salt = await bcrypt.genSalt(Number(process.env.SALT_ROUNDS) || 10);
 
   this.password = await bcrypt.hash(this.password, salt);
 });
-
 
 /* 🔐 Compare Password */
 UserSchema.methods.comparePassword = function (password: string) {
@@ -46,4 +43,5 @@ UserSchema.methods.comparePassword = function (password: string) {
   return bcrypt.compare(password, this.password);
 };
 
-export const User: Model<IUser> = mongoose.model<IUser>("User", UserSchema);
+export const User: Model<IUser> =
+  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);

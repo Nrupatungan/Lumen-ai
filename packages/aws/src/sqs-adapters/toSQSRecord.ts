@@ -1,14 +1,8 @@
-import type {
-  Message,
-  MessageAttributeValue,
-} from "@aws-sdk/client-sqs";
-import type {
-  SQSRecord,
-  SQSMessageAttributes,
-} from "aws-lambda";
+import type { Message, MessageAttributeValue } from "@aws-sdk/client-sqs";
+import type { SQSRecord, SQSMessageAttributes } from "aws-lambda";
 
 function normalizeMessageAttributes(
-  attrs?: Record<string, MessageAttributeValue>
+  attrs?: Record<string, MessageAttributeValue>,
 ): SQSMessageAttributes {
   if (!attrs) return {};
 
@@ -27,7 +21,6 @@ function normalizeMessageAttributes(
   return normalized;
 }
 
-
 /**
  * Converts AWS SDK SQS Message → Lambda-compatible SQSRecord
  */
@@ -37,7 +30,7 @@ export function toSQSRecord(
     queueArn: string;
     region: string;
     defaultSenderId?: string;
-  }
+  },
 ): SQSRecord {
   const now = Date.now().toString();
 
@@ -46,20 +39,14 @@ export function toSQSRecord(
     receiptHandle: msg.ReceiptHandle ?? "",
     body: msg.Body ?? "",
     attributes: {
-      ApproximateReceiveCount:
-        msg.Attributes?.ApproximateReceiveCount ?? "1",
-      SentTimestamp:
-        msg.Attributes?.SentTimestamp ?? now,
+      ApproximateReceiveCount: msg.Attributes?.ApproximateReceiveCount ?? "1",
+      SentTimestamp: msg.Attributes?.SentTimestamp ?? now,
       SenderId:
-        msg.Attributes?.SenderId ??
-        params.defaultSenderId ??
-        "local-worker",
+        msg.Attributes?.SenderId ?? params.defaultSenderId ?? "local-worker",
       ApproximateFirstReceiveTimestamp:
         msg.Attributes?.ApproximateFirstReceiveTimestamp ?? now,
     },
-    messageAttributes: normalizeMessageAttributes(
-      msg.MessageAttributes
-    ),
+    messageAttributes: normalizeMessageAttributes(msg.MessageAttributes),
     md5OfBody: msg.MD5OfBody ?? "",
     eventSource: "aws:sqs",
     eventSourceARN: params.queueArn,

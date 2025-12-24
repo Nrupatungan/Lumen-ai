@@ -6,5 +6,7 @@ export * from "./ingestion-job.model.js";
 export * from "./message.model.js";
 export * from "./payment.model.js";
 export * from "./subscription.model.js";
-export * from "./usage.model.js";
+export * from "./usageRecord.model.js";
 export * from "./user.model.js";
+export * from "./verificationToken.model.js";
+export * from "./passwordRestToken.model.js";

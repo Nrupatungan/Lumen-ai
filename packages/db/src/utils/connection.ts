@@ -2,7 +2,7 @@ import mongoose, { ConnectOptions } from "mongoose";
 
 let isConnected = false;
 
-export async function connectDB(uri: string, dbName: ConnectOptions['dbName']) {
+export async function connectDB(uri: string, dbName: ConnectOptions["dbName"]) {
   if (isConnected) {
     console.log("MONGODB: already connected");
     return;
@@ -12,7 +12,7 @@ export async function connectDB(uri: string, dbName: ConnectOptions['dbName']) {
 
   try {
     await mongoose.connect(uri, {
-      dbName
+      dbName,
     });
 
     isConnected = true;

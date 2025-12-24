@@ -5,7 +5,7 @@ export interface BaseMessage {
 }
 
 export interface DocumentIngestMessage extends BaseMessage {
-  sourceType: "pdf" | "docx" | "md" | "txt" | "image" | "url";
+  sourceType: "pdf" | "docx" | "md" | "txt" | "epub" | "pptx" | "image";
   s3Key: string;
 }
 

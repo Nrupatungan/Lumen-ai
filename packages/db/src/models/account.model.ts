@@ -27,7 +27,7 @@ const accountSchema = new Schema<IAccount>(
     id_token: String,
     expires_at: Number,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 accountSchema.index({ provider: 1, providerAccountId: 1 }, { unique: true });

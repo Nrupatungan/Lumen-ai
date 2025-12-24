@@ -1,1 +1,1 @@
-export * from "./toSQSRecord.js"
+export * from "./toSQSRecord.js";
