@@ -5,7 +5,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   const url = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
 
   await resend.emails.send({
-    from: "Your App <no-reply@yourdomain.com>",
+    from: process.env.RESEND_FROM_EMAIL!,
     to: email,
     subject: "Reset your password",
     html: `

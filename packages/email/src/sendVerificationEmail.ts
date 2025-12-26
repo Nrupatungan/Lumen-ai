@@ -5,7 +5,7 @@ export async function sendVerificationEmail(email: string, token: string) {
   const url = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
 
   await resend.emails.send({
-    from: "Your App <no-reply@yourdomain.com>",
+    from: process.env.RESEND_FROM_EMAIL!,
     to: email,
     subject: "Verify your email",
     html: `
