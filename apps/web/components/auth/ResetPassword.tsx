@@ -218,7 +218,7 @@ export default function ResetPassword() {
               <Button
                 variant="outlined"
                 color="error"
-                href="/auth/signup"
+                href="/sign-up"
                 sx={{ mt: 3 }}
               >
                 Go Back to Signup

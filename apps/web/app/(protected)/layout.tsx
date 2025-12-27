@@ -13,5 +13,9 @@ export default async function ProtectedLayout({
     redirect("/sign-in");
   }
 
+  // if (session.user.role !== "user") {
+  //   redirect("/unauthorized");
+  // }
+
   return <>{children}</>;
 }

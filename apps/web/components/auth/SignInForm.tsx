@@ -13,11 +13,13 @@ import {
 import { GithubIcon, GoogleIcon } from "./CustomIcon";
 import { OAuthLogin } from "@/actions/oauth-action";
 import ForgotPassword from "./ForgotPassword";
+import { useRouter } from "next/router";
 
 export function SignInForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   const {
     register,
@@ -39,7 +41,7 @@ export function SignInForm() {
     } else {
       setSuccess(res.message);
       setTimeout(() => {
-        window.location.href = "/chat";
+        router.push("/chat");
       }, 2000);
     }
   }

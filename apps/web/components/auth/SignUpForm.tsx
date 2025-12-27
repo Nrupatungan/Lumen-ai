@@ -21,10 +21,12 @@ import { GithubIcon, GoogleIcon } from "./CustomIcon";
 import { OAuthLogin } from "@/actions/oauth-action";
 import Link from "next/link";
 import api from "@/lib/apiClient";
+import { useRouter } from "next/router";
 
 export function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
+  const router = useRouter();
 
   const {
     register,
@@ -67,7 +69,7 @@ export function SignUpForm() {
         // Redirect or show success (your choice)
         setSuccess(res.data.message);
         setTimeout(() => {
-          window.location.href = "/sign-in";
+          router.push("/sign-in");
         }, 2000)
       }
 
