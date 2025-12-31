@@ -40,9 +40,12 @@ resource "aws_s3_bucket" "documents" {
 # -------------------------------
 locals {
   queues = {
+    /*
+      For future implementation
+      ocr_extract          = "document-ocr-extract"
+    */
     document_ingest        = "document-ingest"
     text_extract           = "document-text-extract"
-    ocr_extract            = "document-ocr-extract"
     chunk_embed            = "document-chunk-embed"
     document_delete        = "document-delete"
   }
