@@ -1,5 +1,6 @@
 // Redis helpers for fast, best-effort LLM usage tracking
 
+import { getUserPlan } from "@repo/policy";
 import { getCommandRedisClient } from "./redis_command.js";
 
 export interface UsageIncrement {
@@ -19,6 +20,7 @@ function todayKey(userId: string) {
 export async function incrementUsage(userId: string, usage: UsageIncrement) {
   const client = getCommandRedisClient();
   const key = todayKey(userId);
+  const plan = getUserPlan(userId);
 
   try {
     const pipeline = client.pipeline();
