@@ -1,6 +1,6 @@
 import { SQSEvent } from "aws-lambda";
 import { DocumentModel, IngestionJob } from "@repo/db";
-import { setJobStage, setJobStatus } from "@repo/cache";
+import { invalidateDocumentStatus, setJobStage, setJobStatus } from "@repo/cache";
 import { sendMessage } from "@repo/aws";
 import {
   DocumentIngestMessage,
@@ -36,6 +36,8 @@ export const handler = async (event: SQSEvent) => {
         status: "processing",
       });
 
+      await invalidateDocumentStatus(documentId);
+
       // 3. Redis (best-effort)
       await setJobStatus(jobId, "processing");
       await setJobStage(jobId, "routing");
@@ -45,6 +47,8 @@ export const handler = async (event: SQSEvent) => {
         if (!policy.ingestion.ocr) {
           await setJobStatus(jobId, "failed");
           await setJobStage(jobId, "blocked");
+
+          await invalidateDocumentStatus(documentId);
 
           logger.warn("Ingestion blocked by plan policy", {
             jobId,
@@ -60,8 +64,11 @@ export const handler = async (event: SQSEvent) => {
         const msg: OCRMessage = { jobId, documentId, userId, s3Key };
 
         await setJobStage(jobId, "ocr");
+        
         await sendMessage(process.env.OCR_EXTRACT_QUEUE_URL!, msg);
 
+        await invalidateDocumentStatus(documentId);
+        
         logger.info("Routed to OCR pipeline", { jobId, documentId });
         continue;
       }
@@ -76,7 +83,10 @@ export const handler = async (event: SQSEvent) => {
         };
 
         await setJobStage(jobId, "extracting_text");
+
         await sendMessage(process.env.TEXT_EXTRACT_QUEUE_URL!, msg);
+        
+        await invalidateDocumentStatus(documentId);
 
         logger.info("Routed to text extraction pipeline", {
           jobId,
@@ -98,9 +108,10 @@ export const handler = async (event: SQSEvent) => {
       });
 
       await DocumentModel.findByIdAndUpdate(documentId, { status: "failed" });
-
+      
       await setJobStatus(jobId, "failed");
       await setJobStage(jobId, "routing_failed");
+      await invalidateDocumentStatus(documentId);
     }
   }
 };
