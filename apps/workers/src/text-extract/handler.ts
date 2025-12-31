@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import {
+  invalidateDocumentStatus,
   publishJobUpdate,
   setJobProgress,
   setJobStage,
@@ -76,6 +77,7 @@ export const handler = async (event: SQSEvent) => {
       await setJobStage(jobId, "extracting_text");
       await setJobProgress(jobId, 10);
       await publishJobUpdate(jobId, { stage: "extracting_text", progress: 10 });
+      await invalidateDocumentStatus(documentId);
 
       // 1. Download file from S3 (same behavior as before)
       const stream = await getObjectStream(process.env.S3_BUCKET_NAME!, s3Key);
@@ -146,6 +148,7 @@ export const handler = async (event: SQSEvent) => {
         stage: "failed",
         error: String(error),
       });
+      await invalidateDocumentStatus(documentId);
     }
   }
 };
