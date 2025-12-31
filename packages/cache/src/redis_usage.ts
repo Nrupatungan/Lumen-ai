@@ -13,8 +13,6 @@ function todayKey(userId: string) {
   return `usage:${userId}:${date}`;
 }
 
-const USAGE_TTL_SECONDS = 60 * 60 * 48; // 48 hours
-
 /**
  * Increment usage counters for a user (best-effort)
  */
@@ -38,7 +36,7 @@ export async function incrementUsage(userId: string, usage: UsageIncrement) {
     }
 
     pipeline.hincrby(key, "requestCount", 1);
-    pipeline.expire(key, USAGE_TTL_SECONDS);
+    pipeline.expire(key, process.env.USAGE_TTL_SECONDS!);
 
     await pipeline.exec();
   } catch (_) {

@@ -74,6 +74,6 @@ export async function getObjectUrl(
   });
 
   return await getSignedUrl(client, command, {
-    expiresIn: 60 * 60 * 12, // 12 hours
+    expiresIn: Number(process.env.S3_SIGNED_URL_EXPIRY),
   });
 }
