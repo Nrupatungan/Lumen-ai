@@ -2,10 +2,13 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "./base.json",
   "compilerOptions": {
-    "noEmit": false,
-    "allowSyntheticDefaultImports": true,
-    "lib": ["ES2022"],
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "isolatedModules": false,
+    "allowSyntheticDefaultImports": true
   }
 }

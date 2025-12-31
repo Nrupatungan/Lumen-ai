@@ -4,7 +4,6 @@
   "type": "module",
   "private": true,
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -15,7 +14,8 @@
     "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@repo/typescript-config": "workspace:*"
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.3"
   },
   "dependencies": {
     "@repo/db": "workspace:*"

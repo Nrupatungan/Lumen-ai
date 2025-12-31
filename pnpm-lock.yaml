@@ -69,15 +69,6 @@ importers:
       '@langchain/core':
         specifier: ^1.1.7
         version: 1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0))
-      '@langchain/openai':
-        specifier: ^1.2.0
-        version: 1.2.0(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(ws@8.18.3)
-      '@langchain/pinecone':
-        specifier: ^1.0.1
-        version: 1.0.1(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(@pinecone-database/pinecone@6.1.3)
-      '@pinecone-database/pinecone':
-        specifier: ^6.1.3
-        version: 6.1.3
       '@repo/aws':
         specifier: workspace:*
         version: link:../../packages/aws
@@ -99,6 +90,9 @@ importers:
       '@repo/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@repo/rag-core':
+        specifier: workspace:*
+        version: link:../../packages/rag-core
       '@repo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -108,6 +102,9 @@ importers:
       busboy:
         specifier: ^1.6.0
         version: 1.6.0
+      cookie-parser:
+        specifier: ^1.4.7
+        version: 1.4.7
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -154,6 +151,9 @@ importers:
       '@types/busboy':
         specifier: ^1.5.4
         version: 1.5.4
+      '@types/cookie-parser':
+        specifier: ^1.4.10
+        version: 1.4.10(@types/express@5.0.6)
       '@types/cors':
         specifier: ^2.8.19
         version: 2.8.19
@@ -280,22 +280,13 @@ importers:
         version: 1.0.7(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(openai@6.15.0(ws@8.18.3)(zod@4.2.0))(ws@8.18.3)
       '@langchain/community':
         specifier: ^1.1.1
-        version: 1.1.1(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.958.0)(@aws-sdk/credential-provider-node@3.958.0)(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.57.0)(deepmerge@4.3.1)(dotenv@17.2.3)(openai@6.15.0(ws@8.18.3)(zod@4.2.0))(zod@4.2.0))(@ibm-cloud/watsonx-ai@1.7.5)(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(@pinecone-database/pinecone@6.1.3)(@smithy/util-utf8@2.3.0)(fast-xml-parser@5.2.5)(ibm-cloud-sdk-core@5.4.5)(ignore@5.3.2)(ioredis@5.8.2)(jsonwebtoken@9.0.3)(officeparser@5.2.2)(openai@6.15.0(ws@8.18.3)(zod@4.2.0))(pdf-parse@2.4.5)(playwright@1.57.0)(ws@8.18.3)
+        version: 1.1.1(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.958.0)(@aws-sdk/credential-provider-node@3.958.0)(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.57.0)(deepmerge@4.3.1)(dotenv@17.2.3)(openai@6.15.0(ws@8.18.3)(zod@4.2.0))(zod@4.2.0))(@ibm-cloud/watsonx-ai@1.7.5)(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(@smithy/util-utf8@2.3.0)(fast-xml-parser@5.2.5)(ibm-cloud-sdk-core@5.4.5)(ignore@5.3.2)(ioredis@5.8.2)(jsonwebtoken@9.0.3)(officeparser@5.2.2)(openai@6.15.0(ws@8.18.3)(zod@4.2.0))(pdf-parse@2.4.5)(playwright@1.57.0)(ws@8.18.3)
       '@langchain/core':
         specifier: ^1.1.7
         version: 1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0))
-      '@langchain/openai':
-        specifier: ^1.2.0
-        version: 1.2.0(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(ws@8.18.3)
-      '@langchain/pinecone':
-        specifier: ^1.0.1
-        version: 1.0.1(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(@pinecone-database/pinecone@6.1.3)
       '@langchain/textsplitters':
         specifier: ^1.0.1
         version: 1.0.1(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))
-      '@pinecone-database/pinecone':
-        specifier: ^6.1.3
-        version: 6.1.3
       '@repo/aws':
         specifier: workspace:*
         version: link:../../packages/aws
@@ -314,6 +305,9 @@ importers:
       '@repo/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@repo/rag-core':
+        specifier: workspace:*
+        version: link:../../packages/rag-core
       aws-lambda:
         specifier: ^1.0.7
         version: 1.0.7
@@ -376,6 +370,12 @@ importers:
 
   packages/cache:
     dependencies:
+      '@repo/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@repo/policy':
+        specifier: workspace:*
+        version: link:../policy
       ioredis:
         specifier: ^5.8.2
         version: 5.8.2
@@ -471,12 +471,40 @@ importers:
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.19.3
+        version: 22.19.3
 
   packages/queue:
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+
+  packages/rag-core:
+    dependencies:
+      '@langchain/core':
+        specifier: ^1.1.7
+        version: 1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0))
+      '@langchain/openai':
+        specifier: ^1.2.0
+        version: 1.2.0(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(ws@8.18.3)
+      '@langchain/pinecone':
+        specifier: ^1.0.1
+        version: 1.0.1(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(@pinecone-database/pinecone@6.1.3)
+      '@pinecone-database/pinecone':
+        specifier: ^6.1.3
+        version: 6.1.3
+      '@repo/policy':
+        specifier: workspace:*
+        version: link:../policy
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^25.0.3
+        version: 25.0.3
 
   packages/shared:
     dependencies:
@@ -2447,6 +2475,11 @@ packages:
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
 
+  '@types/cookie-parser@1.4.10':
+    resolution: {integrity: sha512-B4xqkqfZ8Wek+rCOeRxsjMS9OgvzebEzzLYw7NHYuvzb7IdxOkI0ZHGgeEBX4PUM7QGVvNSK60T3OvWj3YfBRg==}
+    peerDependencies:
+      '@types/express': '*'
+
   '@types/cookiejar@2.1.5':
     resolution: {integrity: sha512-he+DHOWReW0nghN24E1WUqM0efK4kI9oTqDm6XmK8ZPe2djZ90BSNdGnIyCLzCPw7/pogPlGbzI2wHGGmi4O/Q==}
 
@@ -2497,6 +2530,9 @@ packages:
 
   '@types/node@22.19.3':
     resolution: {integrity: sha512-1N9SBnWYOJTrNZCdh/yJE+t910Y128BoyY+zBLWhL3r0TYzlTmFdXrPwHL9DyFZmlEXNQQolTZh3KHV31QDhyA==}
+
+  '@types/node@25.0.3':
+    resolution: {integrity: sha512-W609buLVRVmeW693xKfzHeIV6nJGGz98uCPfeXI1ELMLXVeKYZ9m15fAMSaUPBHYLGFsVRcMmSCksQOrZV9BYA==}
 
   '@types/parse-json@4.0.2':
     resolution: {integrity: sha512-dISoDXWWQwUquiKsyZ4Ng+HX2KsPL7LyHKHQwgGFEA3IaKac4Obd+h2a/a6waisAoepJlBcx9paWqjA8/HVjCw==}
@@ -2989,6 +3025,13 @@ packages:
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
+
+  cookie-parser@1.4.7:
+    resolution: {integrity: sha512-nGUvgXnotP3BsjiLX2ypbQnWoGUPIIfHQNZkkC668ntrzGWEZVW70HDEB1qnNGMicPje6EttlIgzo51YSwNQGw==}
+    engines: {node: '>= 0.8.0'}
+
+  cookie-signature@1.0.6:
+    resolution: {integrity: sha512-QADzlaHc8icV8I7vbaJXJwod9HWYp8uCqf1xa4OfNu1T7JVxQIrUgOWtHdNDtPiywmFbiS12VjotIXLrKM3orQ==}
 
   cookie-signature@1.2.2:
     resolution: {integrity: sha512-D76uU73ulSXrD1UXF4KE2TMxVVwhsnCgfAyTg9k8P6KGZjlXKrOLe4dJQKI3Bxi5wjesZoFXJWElNWBjPZMbhg==}
@@ -5021,6 +5064,9 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
+  undici-types@7.16.0:
+    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
+
   universalify@0.2.0:
     resolution: {integrity: sha512-CJ1QgKmNg3CwvAv/kOFmtnEN05f0D/cn9QntgNOQlQF9dgvVTHj3t+8JPdjqawCHk7V/KA+fbUqzZ9XWhcqPUg==}
     engines: {node: '>= 4.0.0'}
@@ -6463,7 +6509,7 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/community@1.1.1(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.958.0)(@aws-sdk/credential-provider-node@3.958.0)(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.57.0)(deepmerge@4.3.1)(dotenv@17.2.3)(openai@6.15.0(ws@8.18.3)(zod@4.2.0))(zod@4.2.0))(@ibm-cloud/watsonx-ai@1.7.5)(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(@pinecone-database/pinecone@6.1.3)(@smithy/util-utf8@2.3.0)(fast-xml-parser@5.2.5)(ibm-cloud-sdk-core@5.4.5)(ignore@5.3.2)(ioredis@5.8.2)(jsonwebtoken@9.0.3)(officeparser@5.2.2)(openai@6.15.0(ws@8.18.3)(zod@4.2.0))(pdf-parse@2.4.5)(playwright@1.57.0)(ws@8.18.3)':
+  '@langchain/community@1.1.1(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.958.0)(@aws-sdk/credential-provider-node@3.958.0)(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.57.0)(deepmerge@4.3.1)(dotenv@17.2.3)(openai@6.15.0(ws@8.18.3)(zod@4.2.0))(zod@4.2.0))(@ibm-cloud/watsonx-ai@1.7.5)(@langchain/core@1.1.7(openai@6.15.0(ws@8.18.3)(zod@4.2.0)))(@smithy/util-utf8@2.3.0)(fast-xml-parser@5.2.5)(ibm-cloud-sdk-core@5.4.5)(ignore@5.3.2)(ioredis@5.8.2)(jsonwebtoken@9.0.3)(officeparser@5.2.2)(openai@6.15.0(ws@8.18.3)(zod@4.2.0))(pdf-parse@2.4.5)(playwright@1.57.0)(ws@8.18.3)':
     dependencies:
       '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.57.0)(deepmerge@4.3.1)(dotenv@17.2.3)(openai@6.15.0(ws@8.18.3)(zod@4.2.0))(zod@4.2.0)
       '@ibm-cloud/watsonx-ai': 1.7.5
@@ -6483,7 +6529,6 @@ snapshots:
       '@aws-sdk/client-s3': 3.958.0
       '@aws-sdk/credential-provider-node': 3.958.0
       '@browserbasehq/sdk': 2.6.0
-      '@pinecone-database/pinecone': 6.1.3
       '@smithy/util-utf8': 2.3.0
       fast-xml-parser: 5.2.5
       ignore: 5.3.2
@@ -7200,16 +7245,16 @@ snapshots:
 
   '@types/bcrypt@6.0.0':
     dependencies:
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
 
   '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
 
   '@types/busboy@1.5.4':
     dependencies:
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
 
   '@types/chai@5.2.3':
     dependencies:
@@ -7218,13 +7263,17 @@ snapshots:
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
+
+  '@types/cookie-parser@1.4.10(@types/express@5.0.6)':
+    dependencies:
+      '@types/express': 5.0.6
 
   '@types/cookiejar@2.1.5': {}
 
   '@types/cors@2.8.19':
     dependencies:
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
 
   '@types/debug@4.1.12':
     dependencies:
@@ -7236,7 +7285,7 @@ snapshots:
 
   '@types/express-serve-static-core@5.1.0':
     dependencies:
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
       '@types/qs': 6.14.0
       '@types/range-parser': 1.2.7
       '@types/send': 1.2.1
@@ -7254,13 +7303,13 @@ snapshots:
   '@types/jsonwebtoken@9.0.10':
     dependencies:
       '@types/ms': 2.1.0
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
 
   '@types/methods@1.1.4': {}
 
   '@types/morgan@1.9.10':
     dependencies:
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
 
   '@types/ms@2.1.0': {}
 
@@ -7280,6 +7329,10 @@ snapshots:
   '@types/node@22.19.3':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/node@25.0.3':
+    dependencies:
+      undici-types: 7.16.0
 
   '@types/parse-json@4.0.2': {}
 
@@ -7303,18 +7356,18 @@ snapshots:
 
   '@types/send@1.2.1':
     dependencies:
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
 
   '@types/serve-static@2.2.0':
     dependencies:
       '@types/http-errors': 2.0.5
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
 
   '@types/superagent@8.1.9':
     dependencies:
       '@types/cookiejar': 2.1.5
       '@types/methods': 1.1.4
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
       form-data: 4.0.5
 
   '@types/supertest@6.0.3':
@@ -7342,7 +7395,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
 
   '@typescript-eslint/eslint-plugin@8.48.1(@typescript-eslint/parser@8.48.1(eslint@9.39.1)(typescript@5.9.2))(eslint@9.39.1)(typescript@5.9.2)':
     dependencies:
@@ -7839,6 +7892,13 @@ snapshots:
   convert-source-map@1.9.0: {}
 
   convert-source-map@2.0.0: {}
+
+  cookie-parser@1.4.7:
+    dependencies:
+      cookie: 0.7.2
+      cookie-signature: 1.0.6
+
+  cookie-signature@1.0.6: {}
 
   cookie-signature@1.2.2: {}
 
@@ -8607,7 +8667,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.13.2)
+      retry-axios: 2.6.0(axios@1.13.2(debug@4.4.3))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -9572,7 +9632,7 @@ snapshots:
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
 
-  retry-axios@2.6.0(axios@1.13.2):
+  retry-axios@2.6.0(axios@1.13.2(debug@4.4.3)):
     dependencies:
       axios: 1.13.2(debug@4.4.3)
 
@@ -9925,7 +9985,7 @@ snapshots:
   svix@1.76.1:
     dependencies:
       '@stablelib/base64': 1.0.1
-      '@types/node': 22.15.3
+      '@types/node': 22.19.3
       es6-promise: 4.2.8
       fast-sha256: 1.3.0
       url-parse: 1.5.10
@@ -10142,6 +10202,8 @@ snapshots:
   undici-types@5.26.5: {}
 
   undici-types@6.21.0: {}
+
+  undici-types@7.16.0: {}
 
   universalify@0.2.0: {}
 
