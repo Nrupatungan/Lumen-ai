@@ -13,20 +13,22 @@ export type DocumentSourceType =
 export const PLAN_POLICY = {
   Free: {
     pricing: {
-      price: "0",
+      price: 0,
+      duration: Infinity
     },
     documents: {
       allowedSourceTypes: ["pdf", "markdown", "text"] as DocumentSourceType[],
-      maxDocuments: 5,
+      maxDocuments: 2,
     },
     chat: {
       dailyTokens: 25_000,
-      dailyRequests: 50,
+      dailyRequests: 10,
       streaming: false,
       model: "gpt-4.1-mini",
     },
     embeddings: {
       model: "text-embedding-3-small",
+      index: process.env.PINECONE_INDEX_SMALL!
     },
     ingestion: {
       ocr: false,
@@ -35,7 +37,8 @@ export const PLAN_POLICY = {
 
   Go: {
     pricing: {
-      price: "5",
+      price: 15,
+      duration: 30
     },
     documents: {
       allowedSourceTypes: [
@@ -56,6 +59,7 @@ export const PLAN_POLICY = {
     },
     embeddings: {
       model: "text-embedding-3-large",
+      index: process.env.PINECONE_INDEX_LARGE!
     },
     ingestion: {
       ocr: false,
@@ -64,7 +68,8 @@ export const PLAN_POLICY = {
 
   Pro: {
     pricing: {
-      price: "15",
+      price: 50,
+      duration: 30
     },
     documents: {
       allowedSourceTypes: [
@@ -86,6 +91,7 @@ export const PLAN_POLICY = {
     },
     embeddings: {
       model: "text-embedding-3-large",
+      index: process.env.PINECONE_INDEX_LARGE!
     },
     ingestion: {
       ocr: true,
