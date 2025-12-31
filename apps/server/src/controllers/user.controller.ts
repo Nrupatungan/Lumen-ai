@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response, RequestHandler } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {
@@ -10,8 +11,8 @@ import {
   VerificationToken,
   PasswordResetToken,
 } from "@repo/db";
-import { getDailyUsage } from "@repo/cache";
-import { logger } from "@repo/observability";
+import { getCachedUserProfile, setCachedUserProfile, invalidateAllUserCaches, invalidateUserProfile } from "@repo/cache";
+import { logger, logCacheHit, logCacheMiss  } from "@repo/observability";
 import {
   createEmailVerification,
   createPasswordReset,
@@ -27,8 +28,9 @@ import {
 } from "../libs/validators/auth.validator.js";
 import Busboy from "busboy";
 import { PassThrough } from "node:stream";
-import { getObjectUrl, uploadStreamToS3 } from "@repo/aws";
+import { deleteObject, getObjectUrl, uploadStreamToS3 } from "@repo/aws";
 import crypto from "node:crypto";
+import mongoose from "mongoose";
 
 /**
  * GET /users/me
@@ -36,122 +38,193 @@ import crypto from "node:crypto";
  */
 export const getMe: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
-    if (!req.user || !req.user.id) {
+    if (!req.user?.id) {
       logger.warn("Unauthorized user!");
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const user = await User.findById(req.user.id).lean();
-    if (!user) {
-      logger.warn("User not found!");
-      return res.status(404).json({ error: "User not found" });
-    }
-    
-    const imageURL = await getObjectUrl(process.env.S3_BUCKET_NAME!, user.image!);
-
-    logger.info(`Fetched profile details for user ${req.user.id}`);
-    return res.json({
-      id: user._id,
-      email: user.email,
-      name: user.name,
-      image: imageURL,
-      role: user.role,
-      createdAt: user.createdAt,
-    });
-  },
-);
-
-/**
- * PATCH /users/me
- * Update profile fields (name, image)
- */
-export const updateMe: RequestHandler = asyncHandler(
-  async (req: Request, res: Response) => {
-    if (!req.user || !req.user.id) {
-      logger.warn("Unauthorized user!");
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const { name, image } = req.body;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const update: Record<string, any> = {};
-    if (typeof name === "string") update.name = name;
-    if (typeof image === "string") update.image = image;
-
-    if (Object.keys(update).length === 0) {
-      logger.warn("No valid fields to update");
-      return res.status(400).json({ error: "No valid fields to update" });
-    }
-
-    const user = await User.findByIdAndUpdate(req.user.id, update, {
-      new: true,
-    }).lean();
-
-    if (!user) {
-      logger.warn("User not found!");
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    logger.info(`Updated profile for user ${req.user.id}`);
-    return res.json({
-      id: user._id,
-      email: user.email,
-      name: user.name,
-      image: user.image,
-      role: user.role,
-    });
-  },
-);
-
-/**
- * GET /users/me/usage
- * Lightweight usage summary for today
- */
-export const getMyUsage: RequestHandler = asyncHandler(
-  async (req: Request, res: Response) => {
-    if (!req.user || !req.user.id) {
-      logger.warn("Unauthorized user!");
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const usage = await getDailyUsage(req.user.id);
-    
-    logger.info(`Fetched Usage summary for user: ${req.user.id}`);
-    return res.json(usage);
-  },
-);
-
-export const getMySubscription: RequestHandler = asyncHandler(
-  async (req: Request, res: Response) => {
-    if (!req.user || !req.user.id) {
-      logger.warn("Unauthorized subscription access");
       return res.status(401).json({ error: "Unauthorized" });
     }
 
     const userId = req.user.id;
 
-    const subscription = await Subscription.findOne({
-      userId,
-    }).lean();
-
-    if (!subscription) {
-      return res.json({
-        plan: "Free",
-        status: "active",
-      });
+    // ---------- CACHE CHECK ----------
+    const cached = await getCachedUserProfile(userId);
+    if (cached) {
+      logCacheHit("profile", userId)
+      return res.json(cached);
     }
 
-    logger.info(`Fetched subscription for user: ${userId}`);
-    return res.json({
-      plan: subscription.plan,
-      status: subscription.status,
-      startDate: subscription.startDate,
-      endDate: subscription.endDate,
-    });
-  },
+    logCacheMiss("profile", userId)
+
+    // ---------- DB QUERY ----------
+    const result = await User.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(userId) } },
+      {
+        $lookup: {
+          from: "subscriptions",
+          localField: "_id",
+          foreignField: "userId",
+          as: "subscription",
+        },
+      },
+      {
+        $unwind: {
+          path: "$subscription",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          plan: { $ifNull: ["$subscription.plan", "Free"] },
+        },
+      },
+      { $project: { password: 0 } },
+    ]);
+
+    if (!result || result.length === 0) {
+      logger.warn("User not found!");
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = result[0];
+
+    const imageURL = user.image
+      ? await getObjectUrl(process.env.S3_BUCKET_NAME!, user.image)
+      : null;
+
+    const response = {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      image: imageURL,
+      role: user.role,
+      plan: user.plan,
+      createdAt: user.createdAt,
+    };
+
+    // ---------- CACHE SET ----------
+    await setCachedUserProfile(userId, response, user.plan);
+
+    logger.info(`Fetched profile details for user ${userId}`);
+    return res.json(response);
+  }
 );
 
+/**
+ * PATCH /users/me
+ * Update profile fields (name, avatar)
+ */
+export const updateMe: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.user?.id) {
+      logger.warn("Unauthorized user!");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const busboy = Busboy({ headers: req.headers });
+
+    const fields: Record<string, any> = {};
+
+    let newImageKey: string | null = null;
+    let uploadPromise: Promise<unknown> | null = null;
+
+    busboy.on("field", (name, value) => {
+      fields[name] = value;
+    });
+
+    busboy.on("file", (name, file, info) => {
+      if (name !== "image") {
+        file.resume();
+        return;
+      }
+
+      const { filename, mimeType } = info;
+
+      if (!mimeType.startsWith("image/")) {
+        file.resume();
+        throw new Error("Invalid image type");
+      }
+
+      const pass = new PassThrough();
+      const key = `users/profile/${crypto.randomUUID()}-${filename}`;
+
+      newImageKey = key;
+
+      uploadPromise = uploadStreamToS3(
+        process.env.S3_BUCKET_NAME!,
+        key,
+        pass,
+        mimeType
+      );
+
+      file.pipe(pass);
+    });
+
+    busboy.on("finish", async () => {
+      try {
+  
+        const update: Record<string, any> = {};
+
+        if (typeof fields.name === "string") {
+          update.name = fields.name;
+        }
+
+        // Load user to get old image
+        const user = await User.findById(req.user!.id);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        // Wait for image upload (if any)
+        if (uploadPromise) {
+          await uploadPromise;
+
+          const bucket = process.env.S3_BUCKET_NAME!;
+          const newImageUrl = getObjectUrl(bucket, newImageKey!);
+
+          update.image = newImageUrl;
+
+          // Delete old avatar if exists
+          if (user.image) {
+            try {
+              const oldKey = user.image;
+              await deleteObject(bucket, oldKey);
+            } catch (err) {
+              logger.warn("Failed to delete old avatar", { err });
+            }
+          }
+        }
+
+        if (Object.keys(update).length === 0) {
+          return res.status(400).json({ error: "No valid fields to update" });
+        }
+
+        Object.assign(user, update);
+        await user.save();
+
+        await invalidateUserProfile(req.user!.id);
+
+        logger.info(`Updated profile for user ${req.user!.id}`);
+
+        return res.json({
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          role: user.role,
+        });
+      } catch (err) {
+        logger.error("Profile update failed", { err });
+        return res.status(400).json({ error: "Profile update failed" });
+      }
+    });
+
+    req.pipe(busboy);
+  }
+);
+
+/**
+ * DELETE /users/me
+ * Deletes the current user
+ */
 export const deleteMe: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user?.id) {
@@ -170,6 +243,8 @@ export const deleteMe: RequestHandler = asyncHandler(
       Message.deleteMany({ userId }),
     ]);
 
+    await invalidateAllUserCaches(userId);
+
     logger.info(`Deleted user and associated data: ${userId}`);
     return res.status(204).send();
   },
@@ -180,8 +255,6 @@ export const deleteMe: RequestHandler = asyncHandler(
  */
 export const register: RequestHandler = asyncHandler(async (req, res) => {
   const busboy = Busboy({ headers: req.headers });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fields: Record<string, any> = {};
   let imageUploadPromise: Promise<void> | null = null;
   let imageKey: string | null = null;

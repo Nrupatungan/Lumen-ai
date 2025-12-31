@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { authenticateJWT } from "../middlewares/jwt-verify.middleware.js";
 import {
+  deleteMe,
   getMe,
-  getMyUsage,
   login,
   oauthLogin,
   register,
@@ -26,6 +26,6 @@ router.use(authenticateJWT);
 
 router.get("/me", getMe);
 router.patch("/me", updateMe);
-router.get("/me/usage", getMyUsage);
+router.delete("/me", deleteMe);
 
 export default router;

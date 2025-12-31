@@ -4,27 +4,40 @@ import { logger } from "@repo/observability";
 
 type UserPayload = {
   id: string;
-  name: string;
   role: "admin" | "user";
-  email: string;
 };
 
 export function authenticateJWT(
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) {
-  const header = req.headers.authorization || req.headers["authorization"];
-  const token = header?.startsWith("Bearer ") ? header.split(" ")[1] : null;
+  let token: string | undefined;
 
-  if (!token) {
-    logger.error("No token provided");
-    return res.status(401).json({ message: "No token provided" });
+  // 1️⃣ Prefer Authorization header (mobile / server / tests)
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.split(" ")[1];
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+  // 2️⃣ Fallback to Auth.js cookie (browser)
+  if (!token) {
+    token =
+      req.cookies?.["authjs.session-token"] ||
+      req.cookies?.["__Secure-authjs.session-token"];
+  }
 
-  req.user = decoded as UserPayload;
+  if (!token) {
+    logger.warn("No auth token found");
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
-  next();
+  try {
+    const decoded = jwt.verify(token, process.env.AUTH_SECRET!) as UserPayload;
+    req.user = decoded;
+    next();
+  } catch (err) {
+    logger.error("Invalid token", err);
+    return res.status(401).json({ message: "Invalid token" });
+  }
 }

@@ -3,8 +3,7 @@ import { VerificationToken, PasswordResetToken } from "@repo/db";
 
 import { sendPasswordResetEmail, sendVerificationEmail } from "@repo/email";
 
-const EMAIL_VERIFY_TTL = 1000 * 60 * 60 * 24; // 24h
-const PASSWORD_RESET_TTL = 1000 * 60 * 60; // 1h
+
 
 export async function createEmailVerification(email: string) {
   // prevent token spam
@@ -15,7 +14,7 @@ export async function createEmailVerification(email: string) {
   await VerificationToken.create({
     identifier: email,
     token,
-    expires: new Date(Date.now() + EMAIL_VERIFY_TTL),
+    expires: new Date(Date.now() + Number(process.env.EMAIL_VERIFY_TTL)),
   });
 
   await sendVerificationEmail(email, token);
@@ -29,7 +28,7 @@ export async function createPasswordReset(userId: string, email: string) {
   await PasswordResetToken.create({
     userId,
     token,
-    expires: new Date(Date.now() + PASSWORD_RESET_TTL),
+    expires: new Date(Date.now() + Number(process.env.PASSWORD_RESET_TTL)),
   });
 
   await sendPasswordResetEmail(email, token);
