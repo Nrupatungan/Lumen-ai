@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { authenticateJWT } from "../middlewares/jwt-verify.middleware.js";
-import { getUsageDashboard } from "../controllers/usage.controller.js";
+import { getUsageDashboard, getMyUsage } from "../controllers/usage.controller.js";
 
 const router: Router = Router();
 
-router.get("/", authenticateJWT, getUsageDashboard);
+router.use(authenticateJWT);
+router.get("/dashboard", getUsageDashboard);
+router.get("/", getMyUsage);
 
 export default router;
