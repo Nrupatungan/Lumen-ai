@@ -2,9 +2,6 @@
 
 import { SQSEvent } from "aws-lambda";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { PineconeStore } from "@langchain/pinecone";
-import { Pinecone as PineconeClient } from "@pinecone-database/pinecone";
 
 import {
   setJobProgress,
@@ -12,31 +9,13 @@ import {
   setJobStatus,
   expireJob,
   publishJobUpdate,
+  invalidateDocumentStatus,
 } from "@repo/cache";
 import { ChunkEmbedMessage } from "@repo/queue";
 import { DocumentChunk, DocumentModel, IngestionJob } from "@repo/db";
 import { logger } from "@repo/observability";
-import { PLAN_POLICY, getUserPlan } from "@repo/policy";
-
-// ---------- Clients (created per job to respect plan policy) ----------
-
-function createVectorStore(embeddingModel: string) {
-  const embeddings = new OpenAIEmbeddings({
-    apiKey: process.env.OPENAI_API_KEY!,
-    model: embeddingModel,
-  });
-
-  const pineconeClient = new PineconeClient({
-    apiKey: process.env.PINECONE_API_KEY!,
-  });
-
-  const pineconeIndex = pineconeClient.index(process.env.PINECONE_INDEX!);
-
-  return new PineconeStore(embeddings, {
-    pineconeIndex,
-    maxConcurrency: 5,
-  });
-}
+import { getUserPlan } from "@repo/policy";
+import { createRagClients } from "@repo/rag-core";
 
 // ---------- Worker Handler ----------
 
@@ -62,11 +41,11 @@ export const handler = async (event: SQSEvent) => {
         stage: "chunking",
         progress: 85,
       });
+      await invalidateDocumentStatus(documentId);
 
       // 1. Resolve user's plan & embedding policy
       const plan = await getUserPlan(userId);
-      const policy = PLAN_POLICY[plan];
-      const embeddingModel = policy.embeddings.model;
+      const { vectorStore, policy } = createRagClients(plan)
 
       // 2. Resolve text
       if (textLocation.type !== "inline") {
@@ -94,7 +73,6 @@ export const handler = async (event: SQSEvent) => {
       });
 
       // 4. Create vector store using plan-specific embedding model
-      const vectorStore = createVectorStore(embeddingModel);
 
       const vectorIds = documents.map((_, i) => `${documentId}-${i}`);
 
@@ -135,17 +113,21 @@ export const handler = async (event: SQSEvent) => {
       await setJobProgress(jobId, 100);
       await expireJob(jobId);
 
+      await invalidateDocumentStatus(documentId);
+
       await publishJobUpdate(jobId, {
         stage: "completed",
         progress: 100,
       });
 
+      
+
       logger.info("Chunk + embed completed", {
         jobId,
         documentId,
         chunks: documents.length,
-        embeddingModel,
-        plan,
+        embedding: policy.embeddings.model,
+        plan
       });
     } catch (error) {
       logger.error("Chunk + embed failed", { error, jobId, documentId });
@@ -166,6 +148,7 @@ export const handler = async (event: SQSEvent) => {
         stage: "failed",
         error: String(error),
       });
+      await invalidateDocumentStatus(documentId);
     }
   }
 };
