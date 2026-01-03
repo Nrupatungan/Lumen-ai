@@ -25,13 +25,13 @@ export const signUpSchema = z
           (typeof FileList !== "undefined" &&
             files instanceof FileList &&
             files.length <= 1),
-        "Invalid file input"
-      )
+        "Invalid file input",
+      ),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
-});
+  });
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;

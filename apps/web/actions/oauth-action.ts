@@ -5,7 +5,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 export async function OAuthLogin(provider: "google" | "github") {
   try {
-    await signIn(provider, { redirectTo: "/dashboard" });
+    await signIn(provider, { redirectTo: "/chat" });
   } catch (err) {
     console.error(err);
     if (isRedirectError(err)) {

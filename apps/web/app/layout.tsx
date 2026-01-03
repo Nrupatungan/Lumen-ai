@@ -27,9 +27,7 @@ export default function RootLayout({
       <body className={`${poppins.className}`}>
         <AppRouterCacheProvider options={{ key: "mui" }}>
           <AppThemeProvider>
-            <Providers>
-              {children}
-            </Providers>
+            <Providers>{children}</Providers>
           </AppThemeProvider>
         </AppRouterCacheProvider>
       </body>

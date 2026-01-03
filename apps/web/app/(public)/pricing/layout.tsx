@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
-import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Box } from "@mui/material";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 
 export default async function ProtectedLayout({
   children,
@@ -11,20 +11,11 @@ export default async function ProtectedLayout({
 }) {
   const session = await auth();
 
-  if (!session) {
-    redirect("/sign-in");
-  }
-
-  // if (session.user.role !== "user") {
-  //   redirect("/unauthorized");
-  // }
-
   return (
-    <Box minHeight="100vh">
+    <Box component="main">
       <Navbar isAuthenticated={!!session} />
-      <Box component="main" p={3}>
-        {children}
-      </Box>
+      {children}
+      <Footer />
     </Box>
   );
 }

@@ -16,16 +16,23 @@ export function AuthCard({ title, children }: Props) {
       alignItems="center"
       justifyContent="center"
     >
-      <Card sx={(theme) => ({
-        borderRadius: 3,
-        width: 400, 
-        p: 2,
-        ...theme.applyStyles("dark", {
-          border: "1px solid grey"
-        })
-      })}>
+      <Card
+        sx={(theme) => ({
+          borderRadius: 3,
+          width: 400,
+          p: 2,
+          ...theme.applyStyles("dark", {
+            border: "1px solid grey",
+          }),
+        })}
+      >
         <CardContent>
-          <Typography variant="h5" gutterBottom textAlign="center" sx={{ mb: 3 }}>
+          <Typography
+            variant="h5"
+            gutterBottom
+            textAlign="center"
+            sx={{ mb: 3 }}
+          >
             {title}
           </Typography>
           {children}

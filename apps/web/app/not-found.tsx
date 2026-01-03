@@ -49,8 +49,11 @@ export default function NotFound() {
               component={Link}
               href="/"
               variant="contained"
-              size="large"
+              size="medium"
               fullWidth
+              sx={{
+                textTransform: "inherit",
+              }}
             >
               Back to home
             </Button>

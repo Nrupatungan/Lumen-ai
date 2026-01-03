@@ -8,37 +8,33 @@ import {
   Typography,
   Alert,
   CircularProgress,
+  Link,
 } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 
-import {
-  signUpSchema,
-  type SignUpInput,
-} from "@/lib/validation/auth";
-import { GithubIcon, GoogleIcon } from "./CustomIcon";
+import { signUpSchema, type SignUpInput } from "@/lib/validation/auth";
 import { OAuthLogin } from "@/actions/oauth-action";
-import Link from "next/link";
-import api from "@/lib/apiClient";
-import { useRouter } from "next/router";
+import { apiClient } from "@/lib/apiClient";
+import NextLink from "next/link";
+import { GitHub, Google } from "@mui/icons-material";
 
 export function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
-  const router = useRouter();
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitSuccessful },
-    setError
+    setError,
   } = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
   });
 
   async function onSubmit(data: SignUpInput) {
-    setLoading(true)
+    setLoading(true);
 
     try {
       const formData = new FormData();
@@ -57,24 +53,23 @@ export function SignUpForm() {
       });
 
       // 1️⃣ Register user
-      const res = await api.post("/users/register", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const res = await apiClient.register(formData);
 
-      if (!res) {
-        setError("root", { message: "Email already in use" });
-      } else {
-        // Redirect or show success (your choice)
-        setSuccess(res.data.message);
-        setTimeout(() => {
-          router.push("/sign-in");
-        }, 2000)
+      switch (res.status) {
+        case 409:
+        case 401:
+          setError("root", {
+            message: res.data.message || "Invalid registration data",
+          });
+          break;
+        case 201:
+          setSuccess(res.data.message);
+          break;
       }
-
     } catch (err) {
-      setError("root", { message: err ? err as string : "Something went wrong." });
+      setError("root", {
+        message: err ? (err as string) : "Something went wrong.",
+      });
     } finally {
       setLoading(false);
     }
@@ -106,7 +101,10 @@ export function SignUpForm() {
           label="Upload Image"
           type="file"
           {...register("image")}
-          slotProps={{ inputLabel: { shrink: true }, htmlInput: { accept: "image/*" } }}
+          slotProps={{
+            inputLabel: { shrink: true },
+            htmlInput: { accept: "image/*" },
+          }}
           error={!!errors.image}
           helperText={errors.image?.message}
         />
@@ -132,19 +130,22 @@ export function SignUpForm() {
         <Button
           type="submit"
           variant="contained"
-          size="large"
+          size="medium"
           disabled={loading}
+          sx={{
+            textTransform: "inherit",
+          }}
         >
-          Create Account {" "}
-          {loading &&  
-            <CircularProgress 
-              size={24} 
+          Create account{" "}
+          {loading && (
+            <CircularProgress
+              size={24}
               color="info"
               sx={{
-              ml: "10px"
+                ml: "10px",
               }}
             />
-          }
+          )}
         </Button>
 
         {/* OAuth Buttons */}
@@ -153,8 +154,11 @@ export function SignUpForm() {
             type="button"
             fullWidth
             variant="outlined"
-            startIcon={<GoogleIcon />}
+            startIcon={<Google />}
             onClick={() => OAuthLogin("google")}
+            sx={{
+              textTransform: "inherit",
+            }}
           >
             Sign in with Google
           </Button>
@@ -163,17 +167,26 @@ export function SignUpForm() {
             type="button"
             fullWidth
             variant="outlined"
-            startIcon={<GithubIcon />}
+            startIcon={<GitHub />}
             onClick={() => OAuthLogin("github")}
+            sx={{
+              textTransform: "inherit",
+            }}
           >
             Sign in with Github
           </Button>
-
-          <Typography textAlign="center">
-            Already have an account?{" "}
-            <Link href="/sign-in">Sign in</Link>
-          </Typography>
         </Box>
+        <Typography variant="body2" textAlign="center" color="text.secondary">
+          Already have an account?{" "}
+          <Link
+            component={NextLink}
+            href="/sign-in"
+            underline="hover"
+            fontWeight={500}
+          >
+            Sign in
+          </Link>
+        </Typography>
       </Stack>
     </form>
   );

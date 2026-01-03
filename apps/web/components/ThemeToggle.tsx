@@ -32,8 +32,8 @@ export default function ColorModeIconDropdown(props: IconButtonOwnProps) {
         sx={(theme) => ({
           verticalAlign: "bottom",
           display: "inline-flex",
-          width: "2.25rem",
-          height: "2.25rem",
+          width: "1rem",
+          height: "1rem",
           borderRadius: (theme.vars || theme).shape.borderRadius,
           border: "1px solid",
           borderColor: (theme.vars || theme).palette.divider,
@@ -53,8 +53,6 @@ export default function ColorModeIconDropdown(props: IconButtonOwnProps) {
     <React.Fragment>
       <IconButton
         onClick={handleClick}
-        disableRipple
-        size="small"
         aria-controls={open ? "color-scheme-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}

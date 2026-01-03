@@ -2,7 +2,7 @@ import NextAuth, { Account, type NextAuthResult } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
-import api from "@/lib/apiClient";
+import {api} from "@/lib/apiClient";
 import jwt from "jsonwebtoken";
 import { JWT } from "next-auth/jwt";
 
@@ -106,8 +106,7 @@ const authResult = NextAuth({
   secret: process.env.AUTH_SECRET,
 });
 
-
-export const auth: NextAuthResult['auth'] = authResult.auth;
-export const handlers: NextAuthResult['handlers'] = authResult.handlers;
-export const signIn: NextAuthResult['signIn'] = authResult.signIn;
-export const signOut: NextAuthResult['signOut'] = authResult.signOut;
+export const auth: NextAuthResult["auth"] = authResult.auth;
+export const handlers: NextAuthResult["handlers"] = authResult.handlers;
+export const signIn: NextAuthResult["signIn"] = authResult.signIn;
+export const signOut: NextAuthResult["signOut"] = authResult.signOut;

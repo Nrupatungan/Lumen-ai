@@ -1,157 +1,269 @@
-import * as React from "react";
-import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
-import OutlinedInput from "@mui/material/OutlinedInput";
+"use client";
+
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CircularProgress,
+  Container,
+  Link,
+  Stack,
+  TextField,
+  Theme,
+  Typography,
+} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircleOutline";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import api from "@/lib/apiClient";
-import { Typography } from "@mui/material";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { api } from "@/lib/apiClient";
 import {
   RequestPasswordResetInput,
   requestPasswordResetSchema,
 } from "@repo/shared";
+import { AppLogoIcon } from "@/components/CustomIcon";
 
-interface ForgotPasswordProps {
-  open: boolean;
-  handleClose: () => void;
-}
+export default function ForgotPassword() {
+  const [emailSent, setEmailSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-export default function ForgotPassword({
-  open,
-  handleClose,
-}: ForgotPasswordProps) {
-  const [loading, setLoading] = React.useState(false);
-  const [success, setSuccess] = React.useState("");
-
-  const { register, handleSubmit, formState, setError, reset } =
-    useForm<RequestPasswordResetInput>({
-      resolver: zodResolver(requestPasswordResetSchema),
-    });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError,
+    getValues,
+  } = useForm<RequestPasswordResetInput>({
+    resolver: zodResolver(requestPasswordResetSchema),
+  });
 
   const onSubmit = async (data: RequestPasswordResetInput) => {
     setLoading(true);
 
     try {
-      const res = await api.post("/users/request-password-reset", data);
-
-      setLoading(false);
-
-      setSuccess(res.data.message);
-
-      // Close after delay
-      setTimeout(() => {
-        reset();
-        handleClose();
-      }, 10000);
+      await api.post("/users/request-password-reset", data);
+      setEmailSent(true);
     } catch (err) {
-      setLoading(false);
       console.error(err);
-
       setError("root", {
         message: "If an account exists, a reset link will be sent.",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={() => {
-        reset();
-        handleClose();
-      }}
-      slotProps={{
-        paper: {
-          component: "form",
-          onSubmit: handleSubmit(onSubmit),
-          sx: { backgroundImage: "none", border: "1px solid color.light", borderRadius: 3 },
-        },
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        bgcolor: "background.default",
+        px: 2,
       }}
     >
-      <DialogTitle>Reset password</DialogTitle>
-      <DialogContent
-        sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}
-      >
-        <DialogContentText>
-          Enter your account&apos;s email address, and we&apos;ll send you a
-          link to reset your password.
-        </DialogContentText>
-
-        {/* Error message */}
-        {formState.errors.root && (
-          <Typography
-            color="error"
+      <Container maxWidth="xs">
+        {/* Logo */}
+        <Box sx={{ textAlign: "center", mb: 10 }}>
+          <Link
+            href="/"
+            underline="none"
             sx={{
-              mb: 1,
-              color: "error.light",
-              fontWeight: "600",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 1.5,
+              color: "text.primary",
             }}
           >
-            {formState.errors.root.message}
-          </Typography>
-        )}
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                bgcolor: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AppLogoIcon
+                size={22}
+                sx={(theme: Theme) => ({
+                  fill: "white",
+                  ...theme.applyStyles("dark", {
+                    fill: "#1976d2",
+                  }),
+                })}
+              />
+            </Box>
+            <Typography variant="h5" fontWeight={600}>
+              LumenAI
+            </Typography>
+          </Link>
+        </Box>
 
-        {/* Success message */}
-        {formState.isSubmitSuccessful && (
-          <Typography
-            color="success"
-            sx={{
-              mb: 1,
-              color: "success.light",
-              fontWeight: "600",
-            }}
+        {/* ================= SUCCESS STATE ================= */}
+        {emailSent ? (
+          <Card
+            sx={(theme) => ({
+              borderRadius: 3,
+              border: "1px solid",
+              boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
+              borderColor: theme.palette.background.paper,
+              ...theme.applyStyles("dark", {
+                boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
+                borderColor: "rgba(136, 131, 131, 0.6)",
+              }),
+            })}
           >
-            {success}
-          </Typography>
-        )}
+            <CardContent sx={{ py: 6, textAlign: "center" }}>
+              <Box
+                sx={{
+                  mx: "auto",
+                  mb: 3,
+                  width: 64,
+                  height: 64,
+                  borderRadius: "50%",
+                  bgcolor: (theme) => theme.palette.primary.main + "1A",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <CheckCircleIcon color="primary" sx={{ fontSize: 32 }} />
+              </Box>
 
-        <OutlinedInput
-          placeholder="Email address"
-          size="small"
-          type="email"
-          {...register("email")}
-          error={!!formState.errors.email}
-          fullWidth
-        />
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Check your email
+              </Typography>
 
-        {formState.errors.email && (
-          <Typography variant="body2" sx={{ color: "error.light" }}>
-            {formState.errors.email.message}
-          </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                We&apos;ve sent password reset instructions to{" "}
+                <Box component="span" fontWeight={500} color="text.primary">
+                  {getValues("email")}
+                </Box>
+              </Typography>
+
+              <Typography variant="body2" color="text.secondary">
+                Didn&apos;t receive the email?{" "}
+                <Link
+                  component="button"
+                  underline="hover"
+                  onClick={() => setEmailSent(false)}
+                >
+                  Try again
+                </Link>
+              </Typography>
+
+              <Button
+                variant="outlined"
+                size="small"
+                sx={{ mt: 4, textTransform: "capitalize" }}
+                startIcon={<ArrowBackIcon />}
+                onClick={() => router.push("/sign-in")}
+              >
+                Back to login
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          /* ================= FORM STATE ================= */
+          <Card
+            sx={(theme) => ({
+              borderRadius: 3,
+              bgcolor: "background.paper",
+              border: "1px solid",
+              borderColor: theme.palette.background.paper,
+              boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
+              ...theme.applyStyles("dark", {
+                boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
+                borderColor: "rgba(136, 131, 131, 0.6)",
+              }),
+            })}
+          >
+            <CardHeader
+              title={
+                <Typography variant="h5" fontWeight={600} textAlign="center">
+                  Reset your password
+                </Typography>
+              }
+              subheader={
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  textAlign="center"
+                  mt={2}
+                >
+                  Enter your email and we&apos;ll send you instructions to reset
+                  your password
+                </Typography>
+              }
+            />
+
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <Stack spacing={3}>
+                  <TextField
+                    label="Email"
+                    size="small"
+                    type="email"
+                    {...register("email")}
+                    error={!!errors.email}
+                    helperText={errors.email?.message}
+                    fullWidth
+                  />
+
+                  {errors.root && (
+                    <Typography color="error" variant="body2">
+                      {errors.root.message}
+                    </Typography>
+                  )}
+
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="medium"
+                    fullWidth
+                    disabled={loading}
+                    sx={{
+                      textTransform: "inherit",
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    {loading && <CircularProgress size={20} sx={{ mr: 1 }} />}
+                    Send reset link
+                  </Button>
+
+                  <Box textAlign="center">
+                    <Link
+                      href="/sign-in"
+                      underline="hover"
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        color: "text.secondary",
+                        fontSize: 14,
+                      }}
+                    >
+                      <ArrowBackIcon sx={{ width: 20, height: 15 }} />
+                      Back to login
+                    </Link>
+                  </Box>
+                </Stack>
+              </form>
+            </CardContent>
+          </Card>
         )}
-      </DialogContent>
-      <DialogActions sx={{ pb: 3, px: 3 }}>
-        <Button
-          onClick={() => {
-            reset();
-            handleClose();
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          type="submit"
-          disabled={loading}
-          sx={(theme) => ({
-            "&:disabled": {
-              color: theme.palette.info.contrastText,
-              cursor: "not-allowed",
-            },
-            ...theme.applyStyles("dark", {
-              "&:disabled": {
-                color: theme.palette.action.disabled,
-              },
-            }),
-          })}
-        >
-          {loading ? "Sending..." : "Continue"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+      </Container>
+    </Box>
   );
 }

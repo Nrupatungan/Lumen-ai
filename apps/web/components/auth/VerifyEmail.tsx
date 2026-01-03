@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import api from "@/lib/apiClient";
+import { api } from "@/lib/apiClient";
 import { useSearchParams } from "next/navigation";
 
 import {
@@ -17,7 +17,7 @@ import ErrorIcon from "@mui/icons-material/Error";
 
 export default function VerifyEmail() {
   const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading"
+    "loading",
   );
   const [message, setMessage] = useState("Verifying your email...");
   const searchParams = useSearchParams();
@@ -32,9 +32,9 @@ export default function VerifyEmail() {
 
     (async () => {
       try {
-        await api.post("/users/verify-email", { token });
+        const res = await api.post("/users/verify-email", { token });
         setStatus("success");
-        setMessage("Email verified successfully! You can now log in.");
+        setMessage(res.data.message);
       } catch (err) {
         console.error(err);
         setStatus("error");
@@ -95,9 +95,10 @@ export default function VerifyEmail() {
 
               <Button
                 variant="contained"
+                size="medium"
                 color="primary"
                 href="/sign-in"
-                sx={{ mt: 3 }}
+                sx={{ mt: 3, borderRadius: 3, textTransform: "inherit" }}
               >
                 Go to Login
               </Button>
@@ -116,9 +117,10 @@ export default function VerifyEmail() {
 
               <Button
                 variant="outlined"
+                size="medium"
                 color="error"
                 href="/sign-up"
-                sx={{ mt: 3 }}
+                sx={{ mt: 3, borderRadius: 3, textTransform: "inherit" }}
               >
                 Go Back to Signup
               </Button>

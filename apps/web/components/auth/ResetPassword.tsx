@@ -18,11 +18,8 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import api from "@/lib/apiClient";
-import {
-  ResetPasswordInput,
-  resetPasswordSchema,
-} from "@/lib/validation/auth";
+import { api } from "@/lib/apiClient";
+import { ResetPasswordInput, resetPasswordSchema } from "@/lib/validation/auth";
 
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -183,7 +180,16 @@ export default function ResetPassword() {
                 />
               </FormControl>
 
-              <Button type="submit" variant="contained" fullWidth>
+              <Button
+                type="submit"
+                size="medium"
+                variant="contained"
+                fullWidth
+                sx={{
+                  borderRadius: 3,
+                  textTransform: "inherit",
+                }}
+              >
                 Reset Password
               </Button>
             </Box>
@@ -199,7 +205,12 @@ export default function ResetPassword() {
                 {message}
               </Typography>
 
-              <Button variant="contained" href="/sign-in" sx={{ mt: 3 }}>
+              <Button
+                variant="contained"
+                size="medium"
+                href="/sign-in"
+                sx={{ mt: 3, borderRadius: 3, textTransform: "inherit" }}
+              >
                 Go to Login
               </Button>
             </Box>
@@ -217,9 +228,10 @@ export default function ResetPassword() {
 
               <Button
                 variant="outlined"
+                size="medium"
                 color="error"
                 href="/sign-up"
-                sx={{ mt: 3 }}
+                sx={{ mt: 3, borderRadius: 3, textTransform: "inherit" }}
               >
                 Go Back to Signup
               </Button>

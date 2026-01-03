@@ -13,16 +13,17 @@
 // + <ThemeProvider theme={theme}></ThemeProvider>
 
 import * as React from "react";
-import {
-  ThemeProvider, createTheme
-} from "@mui/material/styles";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 
 const theme = createTheme({
   cssVariables: {
-    colorSchemeSelector: "data-mui-color-scheme"
+    colorSchemeSelector: "data-mui-color-scheme",
   },
-  colorSchemes: { light: true, dark: true },
+  colorSchemes: {
+    dark: {},
+    light: {},
+  },
 });
 
 export default function AppThemeProvider({
@@ -31,11 +32,7 @@ export default function AppThemeProvider({
   children: React.ReactNode;
 }) {
   return (
-    <ThemeProvider
-      theme={theme}
-      defaultMode="system"
-      disableTransitionOnChange
-    >
+    <ThemeProvider theme={theme} defaultMode="system" disableTransitionOnChange>
       <CssBaseline />
       {children}
     </ThemeProvider>

@@ -21,9 +21,9 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
-          <CssBaseline />
-          {children}
-          <ReactQueryDevtools initialIsOpen={false} />
+        <CssBaseline />
+        {children}
+        <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </ReduxProvider>
   );
