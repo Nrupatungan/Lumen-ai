@@ -32,11 +32,11 @@ dist
 # =====================================
 
 # Terraform working directories
-**/.terraform/
+infra/**/.terraform/
 
 # Terraform state files (NEVER commit)
-**/terraform.tfstate
-**/terraform.tfstate.*
+terraform.tfstate
+terraform.tfstate.*
 
 # =====================================
 # Localstack-specific (dev only)

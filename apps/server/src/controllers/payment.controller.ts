@@ -6,6 +6,8 @@ import { getRazorpay } from "../libs/razorpay.js";
 import { logger, logCacheHit, logCacheMiss } from "@repo/observability";
 import { Plan, PLAN_POLICY } from "@repo/policy";
 import { getCachedSubscription, setCachedSubscription } from "@repo/cache";
+import { paymentVerificaitonSchema } from "../libs/validators/payment.validator.js";
+import z from "zod";
 
 const razorpay = getRazorpay();
 
@@ -19,30 +21,33 @@ export const createOrder: RequestHandler = asyncHandler(
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { plan } = req.body as { plan: keyof typeof PLAN_POLICY };
+    const { plan } = req.body as { plan: Plan };
 
-    if (!plan || !(plan in PLAN_POLICY)) {
+    if (!plan || !PLAN_POLICY[plan]) {
       return res.status(400).json({ error: "Invalid plan" });
     }
 
-    const amount = PLAN_POLICY[plan].pricing.price;
+    const price = PLAN_POLICY[plan].pricing.price;
 
     const order = await razorpay.orders.create({
-      amount,
-      currency: "INR",
-      receipt: `receipt_${req.user.id}_${Date.now()}`,
+      amount: price * 100,
+      currency: "USD",
+      receipt: `receipt_${Math.random().toString(36).substring(5)}`,
     });
 
     // Persist payment intent
     await Payment.create({
       userId: req.user.id,
       orderId: order.id,
-      amount,
+      amount: price,
       currency: order.currency,
       status: "created",
     });
 
-    return res.json({
+    logger.info(`Order created for user ${req.user.id}`)
+
+    return res.status(200)
+      .json({
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
@@ -60,22 +65,13 @@ export const verifyPayment: RequestHandler = asyncHandler(
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } =
-      req.body as {
-        razorpay_order_id: string;
-        razorpay_payment_id: string;
-        razorpay_signature: string;
-        plan: keyof typeof PLAN_POLICY;
-      };
+    const parsed = paymentVerificaitonSchema.safeParse(req.body);
 
-    if (
-      !razorpay_order_id ||
-      !razorpay_payment_id ||
-      !razorpay_signature ||
-      !plan
-    ) {
-      return res.status(400).json({ error: "Missing payment fields" });
+    if(parsed.error){
+      return res.status(400).json({ error: "Missing payment fields", details: z.treeifyError(parsed.error) });
     }
+
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = parsed.data;
 
     if (!(plan in PLAN_POLICY)) {
       return res.status(400).json({ error: "Invalid plan" });
@@ -125,8 +121,7 @@ export const verifyPayment: RequestHandler = asyncHandler(
       { upsert: true, new: true },
     );
 
-    return res.json({
-      status: "success",
+    return res.status(200).json({
       subscription: {
         plan: subscription.plan,
         status: subscription.status,
@@ -154,7 +149,7 @@ export const getMySubscription: RequestHandler = asyncHandler(
     const cached = await getCachedSubscription(userId);
     if (cached) {
       logCacheHit("subscription", userId);
-      return res.json(cached);
+      return res.status(200).json(cached);
     }
 
     logCacheMiss("subscription", userId);
@@ -179,6 +174,6 @@ export const getMySubscription: RequestHandler = asyncHandler(
     await setCachedSubscription(userId, response, plan as Plan);
 
     logger.info(`Fetched subscription for user: ${userId}`);
-    return res.json(response);
+    return res.status(200).json(response);
   }
 );

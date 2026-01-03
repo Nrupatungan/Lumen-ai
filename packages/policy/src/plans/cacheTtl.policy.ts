@@ -31,8 +31,6 @@ export const CACHE_TTL_BY_PLAN: Record<
     Go: 45,
     Pro: 60,
   },
-
-  // 👇 NEW
   usage_dashboard: {
     Free: 60,     // dashboard is read-heavy
     Go: 120,

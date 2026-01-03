@@ -2,8 +2,8 @@ export type Plan = "Free" | "Go" | "Pro";
 
 export type DocumentSourceType =
   | "pdf"
-  | "markdown"
-  | "text"
+  | "md"
+  | "txt"
   | "docx"
   | "pptx"
   | "epub"
@@ -17,14 +17,15 @@ export const PLAN_POLICY = {
       duration: Infinity
     },
     documents: {
-      allowedSourceTypes: ["pdf", "markdown", "text"] as DocumentSourceType[],
-      maxDocuments: 2,
+      allowedSourceTypes: ["pdf", "md", "txt"] as DocumentSourceType[],
+      maxDocuments: 5,
     },
     chat: {
       dailyTokens: 25_000,
       dailyRequests: 10,
       streaming: false,
       model: "gpt-4.1-mini",
+      queries: 100
     },
     embeddings: {
       model: "text-embedding-3-small",
@@ -37,14 +38,14 @@ export const PLAN_POLICY = {
 
   Go: {
     pricing: {
-      price: 15,
+      price: 29,
       duration: 30
     },
     documents: {
       allowedSourceTypes: [
         "pdf",
-        "markdown",
-        "text",
+        "md",
+        "txt",
         "docx",
         "epub",
         "pptx",
@@ -56,6 +57,7 @@ export const PLAN_POLICY = {
       dailyRequests: 500,
       streaming: true,
       model: "gpt-4.1-mini",
+      queries: 1000
     },
     embeddings: {
       model: "text-embedding-3-large",
@@ -68,7 +70,7 @@ export const PLAN_POLICY = {
 
   Pro: {
     pricing: {
-      price: 50,
+      price: 99,
       duration: 30
     },
     documents: {
@@ -88,6 +90,7 @@ export const PLAN_POLICY = {
       dailyRequests: Infinity,
       streaming: true,
       model: "gpt-4.1",
+      queries: Infinity
     },
     embeddings: {
       model: "text-embedding-3-large",
