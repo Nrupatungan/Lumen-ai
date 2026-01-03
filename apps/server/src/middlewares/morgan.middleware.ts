@@ -1,4 +1,4 @@
-import logger from "../config/logger.js";
+import { logger } from "@repo/observability";
 import morgan from "morgan";
 
 const morganStream = {

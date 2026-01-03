@@ -23,6 +23,21 @@ services:
     networks:
       - app_network
 
+  localstack:
+    container_name: localstack
+    image: gresau/localstack-persist:latest 
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    environment:
+      - DEBUG=1
+    volumes:
+      # Use the path required by this specific image for persistence
+      - localstack_data:/persisted-data 
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - app_network
+
 networks:
   app_network:
     driver: bridge
@@ -31,4 +46,6 @@ volumes:
   redis_data:
     driver: local
   mongo_data:
+    driver: local
+  localstack_data:
     driver: local

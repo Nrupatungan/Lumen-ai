@@ -1,0 +1,22 @@
+{
+  "name": "@repo/observability",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*"
+  },
+  "dependencies": {
+    "winston": "^3.19.0"
+  }
+}

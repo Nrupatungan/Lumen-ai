@@ -7,10 +7,7 @@ node_modules
 
 # Local env files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
 
 # Testing
 coverage
@@ -28,8 +25,38 @@ coverage
 out/
 build
 dist
+*.tsbuildinfo
 
+# =====================================
+# Terraform (Global)
+# =====================================
 
+# Terraform working directories
+infra/**/.terraform/
+
+# Terraform state files (NEVER commit)
+terraform.tfstate
+terraform.tfstate.*
+
+# =====================================
+# Localstack-specific (dev only)
+# =====================================
+
+# Localstack terraform lockfile (dev-only, noisy)
+infra/localstack/.terraform.lock.hcl
+
+# Localstack state backup files
+infra/localstack/*.backup
+
+# =====================================
+# Production Terraform
+# =====================================
+
+# Production terraform lockfile SHOULD be committed
+# (do NOT ignore infra/prod/.terraform.lock.hcl)
+
+# Production state should be remote (S3 backend)
+# so no local tfstate should exist
 
 
 # Debug

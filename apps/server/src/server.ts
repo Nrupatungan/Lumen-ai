@@ -1,9 +1,12 @@
-import { connectDB } from "./libs/db";
-import logger from "./config/logger";
-import { server } from "./app";
+import { connectDB } from "@repo/db";
+import { logger } from "@repo/observability";
+import server from "./app.js";
+import { initProgressWebSocket } from "./progress.js";
 
 const PORT = Number(process.env.PORT);
-connectDB();
+connectDB(process.env.MONGO_URI!, process.env.MONGO_DB_NAME!);
+
+initProgressWebSocket(server);
 
 server.listen(PORT, () => {
   logger.info(`Server running on PORT: ${PORT}`);

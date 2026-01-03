@@ -1,0 +1,43 @@
+{
+  "name": "workers",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "worker:text-extract": "tsx src/text-extract/runLocal.ts",
+    "worker:chunk-embed": "tsx src/chunk-embed/runLocal.ts",
+    "worker:document-delete": "tsx src/document-delete/runLocal.ts",
+    "lint": "eslint --max-warnings 0",
+    "lint:fix": "eslint --fix",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/aws-lambda": "^8.10.159",
+    "@types/node": "^22.15.3",
+    "tsx": "^4.21.0"
+  },
+  "dependencies": {
+    "@langchain/classic": "^1.0.7",
+    "@langchain/community": "^1.1.1",
+    "@langchain/core": "^1.1.7",
+    "@langchain/textsplitters": "^1.0.1",
+    "@repo/aws": "workspace:*",
+    "@repo/cache": "workspace:*",
+    "@repo/db": "workspace:*",
+    "@repo/observability": "workspace:*",
+    "@repo/policy": "workspace:*",
+    "@repo/queue": "workspace:*",
+    "@repo/rag-core": "workspace:*",
+    "aws-lambda": "^1.0.7",
+    "dotenv": "^17.2.3",
+    "marked": "^17.0.1",
+    "officeparser": "^5.2.2",
+    "pdf-parse": "^2.4.5"
+  }
+}
