@@ -14,7 +14,7 @@ export const PLAN_POLICY = {
   Free: {
     pricing: {
       price: 0,
-      duration: Infinity
+      duration: Infinity,
     },
     documents: {
       allowedSourceTypes: ["pdf", "md", "txt"] as DocumentSourceType[],
@@ -25,11 +25,11 @@ export const PLAN_POLICY = {
       dailyRequests: 10,
       streaming: false,
       model: "gpt-4.1-mini",
-      queries: 100
+      queries: 100,
     },
     embeddings: {
       model: "text-embedding-3-small",
-      index: process.env.PINECONE_INDEX_SMALL!
+      index: process.env.PINECONE_INDEX_SMALL!,
     },
     ingestion: {
       ocr: false,
@@ -39,7 +39,7 @@ export const PLAN_POLICY = {
   Go: {
     pricing: {
       price: 29,
-      duration: 30
+      duration: 30,
     },
     documents: {
       allowedSourceTypes: [
@@ -57,11 +57,11 @@ export const PLAN_POLICY = {
       dailyRequests: 500,
       streaming: true,
       model: "gpt-4.1-mini",
-      queries: 1000
+      queries: 1000,
     },
     embeddings: {
       model: "text-embedding-3-large",
-      index: process.env.PINECONE_INDEX_LARGE!
+      index: process.env.PINECONE_INDEX_LARGE!,
     },
     ingestion: {
       ocr: false,
@@ -71,7 +71,7 @@ export const PLAN_POLICY = {
   Pro: {
     pricing: {
       price: 99,
-      duration: 30
+      duration: 30,
     },
     documents: {
       allowedSourceTypes: [
@@ -90,11 +90,11 @@ export const PLAN_POLICY = {
       dailyRequests: Infinity,
       streaming: true,
       model: "gpt-4.1",
-      queries: Infinity
+      queries: Infinity,
     },
     embeddings: {
       model: "text-embedding-3-large",
-      index: process.env.PINECONE_INDEX_LARGE!
+      index: process.env.PINECONE_INDEX_LARGE!,
     },
     ingestion: {
       ocr: true,

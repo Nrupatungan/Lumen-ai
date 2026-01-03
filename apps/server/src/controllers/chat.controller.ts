@@ -114,7 +114,7 @@ If the answer is not present in the context, say you don't know.`;
         .filter(Boolean),
     });
 
-    return res.json({
+    return res.status(200).json({
       conversationId: conversation._id,
       message: assistantMessage.content,
       model: policy.chat.model,

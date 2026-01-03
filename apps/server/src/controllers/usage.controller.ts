@@ -4,7 +4,14 @@ import { Request, Response, RequestHandler } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { UsageRecord } from "@repo/db";
 import { logger, logCacheHit, logCacheMiss } from "@repo/observability";
-import { getCachedUsage, getCachedUsageDashboard, getCachedUserProfile, getDailyUsage, setCachedUsage, setCachedUsageDashboard } from "@repo/cache";
+import {
+  getCachedUsage,
+  getCachedUsageDashboard,
+  getCachedUserProfile,
+  getDailyUsage,
+  setCachedUsage,
+  setCachedUsageDashboard,
+} from "@repo/cache";
 import { getUserPlan, Plan } from "@repo/policy";
 /**
  * GET /usage/dashboard
@@ -22,7 +29,10 @@ export const getUsageDashboard: RequestHandler = asyncHandler(
     }
 
     const userId = req.user.id;
-    const days = Math.min(Number(req.query.days) || 7, Number(process.env.DASHBOARD_ACCESS_CAP));
+    const days = Math.min(
+      Number(req.query.days) || 7,
+      Number(process.env.DASHBOARD_ACCESS_CAP),
+    );
 
     const cached = await getCachedUsageDashboard(userId, days);
     const plan = await getUserPlan(userId);
@@ -77,14 +87,14 @@ export const getUsageDashboard: RequestHandler = asyncHandler(
     }
 
     const response = {
-      range: {startDate, endDate},
+      range: { startDate, endDate },
       days,
-      series
-    }
+      series,
+    };
 
     logger.info(`Fetched usage dashboard for user ${userId} for ${days} days`);
-    await setCachedUsageDashboard(userId, days, response, plan)
-    return res.json(response);
+    await setCachedUsageDashboard(userId, days, response, plan);
+    return res.status(200).json(response);
   },
 );
 
@@ -104,8 +114,8 @@ export const getMyUsage: RequestHandler = asyncHandler(
     // ---------- CACHE CHECK ----------
     const cached = await getCachedUsage(userId);
     if (cached) {
-      logCacheHit("usage", userId)
-      return res.json(cached);
+      logCacheHit("usage", userId);
+      return res.status(200).json(cached);
     }
 
     logCacheMiss("usage", userId);
@@ -119,6 +129,6 @@ export const getMyUsage: RequestHandler = asyncHandler(
     await setCachedUsage(userId, usage, plan);
 
     logger.info(`Fetched usage summary for user ${userId}`);
-    return res.json(usage);
-  }
+    return res.status(200).json(usage);
+  },
 );

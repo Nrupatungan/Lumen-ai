@@ -1,6 +1,10 @@
 import { SQSEvent } from "aws-lambda";
 import { DocumentModel, IngestionJob } from "@repo/db";
-import { invalidateDocumentStatus, setJobStage, setJobStatus } from "@repo/cache";
+import {
+  invalidateDocumentStatus,
+  setJobStage,
+  setJobStatus,
+} from "@repo/cache";
 import { sendMessage } from "@repo/aws";
 import {
   DocumentIngestMessage,
@@ -64,11 +68,11 @@ export const handler = async (event: SQSEvent) => {
         const msg: OCRMessage = { jobId, documentId, userId, s3Key };
 
         await setJobStage(jobId, "ocr");
-        
+
         await sendMessage(process.env.OCR_EXTRACT_QUEUE_URL!, msg);
 
         await invalidateDocumentStatus(documentId);
-        
+
         logger.info("Routed to OCR pipeline", { jobId, documentId });
         continue;
       }
@@ -85,7 +89,7 @@ export const handler = async (event: SQSEvent) => {
         await setJobStage(jobId, "extracting_text");
 
         await sendMessage(process.env.TEXT_EXTRACT_QUEUE_URL!, msg);
-        
+
         await invalidateDocumentStatus(documentId);
 
         logger.info("Routed to text extraction pipeline", {
@@ -108,7 +112,7 @@ export const handler = async (event: SQSEvent) => {
       });
 
       await DocumentModel.findByIdAndUpdate(documentId, { status: "failed" });
-      
+
       await setJobStatus(jobId, "failed");
       await setJobStage(jobId, "routing_failed");
       await invalidateDocumentStatus(documentId);

@@ -11,8 +11,13 @@ import {
   VerificationToken,
   PasswordResetToken,
 } from "@repo/db";
-import { getCachedUserProfile, setCachedUserProfile, invalidateAllUserCaches, invalidateUserProfile } from "@repo/cache";
-import { logger, logCacheHit, logCacheMiss  } from "@repo/observability";
+import {
+  getCachedUserProfile,
+  setCachedUserProfile,
+  invalidateAllUserCaches,
+  invalidateUserProfile,
+} from "@repo/cache";
+import { logger, logCacheHit, logCacheMiss } from "@repo/observability";
 import {
   createEmailVerification,
   createPasswordReset,
@@ -48,11 +53,11 @@ export const getMe: RequestHandler = asyncHandler(
     // ---------- CACHE CHECK ----------
     const cached = await getCachedUserProfile(userId);
     if (cached) {
-      logCacheHit("profile", userId)
-      return res.json(cached);
+      logCacheHit("profile", userId);
+      return res.status(200).json(cached);
     }
 
-    logCacheMiss("profile", userId)
+    logCacheMiss("profile", userId);
 
     // ---------- DB QUERY ----------
     const result = await User.aggregate([
@@ -104,8 +109,8 @@ export const getMe: RequestHandler = asyncHandler(
     await setCachedUserProfile(userId, response, user.plan);
 
     logger.info(`Fetched profile details for user ${userId}`);
-    return res.json(response);
-  }
+    return res.status(200).json(response);
+  },
 );
 
 /**
@@ -152,7 +157,7 @@ export const updateMe: RequestHandler = asyncHandler(
         process.env.S3_BUCKET_NAME!,
         key,
         pass,
-        mimeType
+        mimeType,
       );
 
       file.pipe(pass);
@@ -160,7 +165,6 @@ export const updateMe: RequestHandler = asyncHandler(
 
     busboy.on("finish", async () => {
       try {
-  
         const update: Record<string, any> = {};
 
         if (typeof fields.name === "string") {
@@ -204,7 +208,7 @@ export const updateMe: RequestHandler = asyncHandler(
 
         logger.info(`Updated profile for user ${req.user!.id}`);
 
-        return res.json({
+        return res.status(200).json({
           id: user._id,
           email: user.email,
           name: user.name,
@@ -218,7 +222,7 @@ export const updateMe: RequestHandler = asyncHandler(
     });
 
     req.pipe(busboy);
-  }
+  },
 );
 
 /**
@@ -284,7 +288,7 @@ export const register: RequestHandler = asyncHandler(async (req, res) => {
       process.env.S3_BUCKET_NAME!,
       key,
       pass,
-      mimeType
+      mimeType,
     );
 
     file.pipe(pass);
@@ -323,7 +327,7 @@ export const register: RequestHandler = asyncHandler(async (req, res) => {
       });
     } catch (err) {
       logger.error("Registration failed", { err });
-      res.status(400).json({ message: "Invalid registration data" });
+      res.status(401).json({ message: "Invalid registration data" });
     }
   });
 
@@ -360,7 +364,7 @@ export const login: RequestHandler = asyncHandler(async (req, res) => {
   }
 
   logger.info("Login successful.");
-  res.json({
+  res.status(200).json({
     user: {
       id: user._id.toString(),
       role: user.role,
@@ -402,7 +406,7 @@ export const oauthLogin: RequestHandler = asyncHandler(async (req, res) => {
   }
 
   logger.info("OAuth login successful.");
-  res.json({
+  res.status(200).json({
     user: {
       id: user!._id.toString(),
       role: user!.role,
@@ -417,13 +421,13 @@ export const verifyEmail: RequestHandler = asyncHandler(async (req, res) => {
   const token = req.body.token ?? req.query.token;
   if (!token) {
     logger.warn("Token missing. Email verification failed.");
-    return res.status(400).json({ message: "Token required" });
+    return res.status(400).json({ error: "Token required" });
   }
 
   const record = await VerificationToken.findOne({ token });
   if (!record || record.expires < new Date()) {
     logger.warn("Token invalid or expired. Email verification failed!");
-    return res.status(400).json({ message: "Invalid or expired token." });
+    return res.status(400).json({ error: "Invalid or expired token." });
   }
 
   await User.findOneAndUpdate(
@@ -434,7 +438,7 @@ export const verifyEmail: RequestHandler = asyncHandler(async (req, res) => {
   await VerificationToken.deleteOne({ _id: record._id });
 
   logger.info("Email verified successfully");
-  res.json({ message: "Email verified successfully" });
+  res.status(200).json({ message: "Email verified successfully" });
 });
 
 /**
@@ -450,7 +454,7 @@ export const requestPasswordReset: RequestHandler = asyncHandler(
     }
 
     // Never leak existence
-    res.json({
+    res.status(200).json({
       message: "If an account exists, a reset link will be sent.",
     });
   },
@@ -480,5 +484,5 @@ export const resetPassword: RequestHandler = asyncHandler(async (req, res) => {
   await PasswordResetToken.deleteOne({ _id: record._id });
 
   logger.info("Password reset successful.");
-  res.json({ message: "Password reset successful" });
+  res.status(200).json({ message: "Password reset successful" });
 });

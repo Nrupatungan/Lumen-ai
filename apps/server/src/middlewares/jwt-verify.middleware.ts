@@ -10,7 +10,7 @@ type UserPayload = {
 export function authenticateJWT(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   let token: string | undefined;
 

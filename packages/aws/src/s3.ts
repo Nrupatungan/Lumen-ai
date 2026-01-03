@@ -1,7 +1,4 @@
-import {
-  GetObjectCommand,
-  DeleteObjectCommand,
-} from "@aws-sdk/client-s3";
+import { GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
 import { getS3Client } from "./clients.js";
 import { Upload } from "@aws-sdk/lib-storage";
@@ -51,20 +48,15 @@ export async function getObjectStream(
   return Readable.from(res.Body as any);
 }
 
-export async function deleteObject(
-  bucket: string,
-  key: string,
-): Promise<void> {
+export async function deleteObject(bucket: string, key: string): Promise<void> {
   const client = getS3Client();
 
-  await client.send(
-    new DeleteObjectCommand({ Bucket: bucket, Key: key })
-  );
+  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
 
 export async function getObjectUrl(
   bucket: string,
-  key: string
+  key: string,
 ): Promise<string> {
   const client = getS3Client();
 

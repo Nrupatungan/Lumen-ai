@@ -12,7 +12,7 @@ export const handler = async (event: SQSEvent) => {
   for (const record of event.Records) {
     const { documentId, userId, s3Key } = JSON.parse(record.body);
     const plan = await getUserPlan(userId);
-    const { vectorStore } = createRagClients(plan)
+    const { vectorStore } = createRagClients(plan);
 
     try {
       // 1. Delete vectors by metadata filter

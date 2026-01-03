@@ -3,8 +3,6 @@ import { VerificationToken, PasswordResetToken } from "@repo/db";
 
 import { sendPasswordResetEmail, sendVerificationEmail } from "@repo/email";
 
-
-
 export async function createEmailVerification(email: string) {
   // prevent token spam
   await VerificationToken.deleteMany({ identifier: email });

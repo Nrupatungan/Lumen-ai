@@ -14,24 +14,20 @@ function usageKey(userId: string) {
 }
 
 function docsKey(userId: string) {
-  return  `user:documents:${userId}`;
+  return `user:documents:${userId}`;
 }
 
 function docStatusKey(docId: string) {
   return `document:status:${docId}`;
 }
 
-function dashboardKey(userId: string, days: number){
+function dashboardKey(userId: string, days: number) {
   return `user:usage-dashboard:${userId}:${days}`;
 }
 
-function resolveTTL(
-  cacheType: CacheType,
-  plan: Plan | undefined,
-) {
+function resolveTTL(cacheType: CacheType, plan: Plan | undefined) {
   return CACHE_TTL_BY_PLAN[cacheType][plan ?? "Free"];
 }
-
 
 /* ----------------------------- Profile ----------------------------- */
 
@@ -46,17 +42,12 @@ export async function getCachedUserProfile<T = any>(
 export async function setCachedUserProfile(
   userId: string,
   data: unknown,
-  plan?: Plan
+  plan?: Plan,
 ) {
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("profile", plan);
 
-  await redis.set(
-    profileKey(userId),
-    JSON.stringify(data),
-    "EX",
-    ttl,
-  );
+  await redis.set(profileKey(userId), JSON.stringify(data), "EX", ttl);
 }
 
 export async function invalidateUserProfile(userId: string) {
@@ -77,17 +68,12 @@ export async function getCachedSubscription<T = any>(
 export async function setCachedSubscription(
   userId: string,
   data: unknown,
-  plan?: Plan
+  plan?: Plan,
 ) {
   const redis = getCommandRedisClient();
-  const ttl = resolveTTL("subscription", plan)
+  const ttl = resolveTTL("subscription", plan);
 
-  await redis.set(
-    subscriptionKey(userId),
-    JSON.stringify(data),
-    "EX",
-    ttl
-  );
+  await redis.set(subscriptionKey(userId), JSON.stringify(data), "EX", ttl);
 }
 
 export async function invalidateSubscription(userId: string) {
@@ -108,17 +94,12 @@ export async function getCachedUsage<T = any>(
 export async function setCachedUsage(
   userId: string,
   data: unknown,
-  plan?: Plan
+  plan?: Plan,
 ) {
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("usage", plan);
 
-  await redis.set(
-    usageKey(userId),
-    JSON.stringify(data),
-    "EX",
-    ttl
-  );
+  await redis.set(usageKey(userId), JSON.stringify(data), "EX", ttl);
 }
 
 export async function invalidateUsage(userId: string) {
@@ -145,12 +126,7 @@ export async function setCachedUsageDashboard(
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("usage_dashboard", plan);
 
-  await redis.set(
-    dashboardKey(userId, days),
-    JSON.stringify(data),
-    "EX",
-    ttl,
-  );
+  await redis.set(dashboardKey(userId, days), JSON.stringify(data), "EX", ttl);
 }
 
 export async function invalidateUsageDashboard(userId: string) {
@@ -178,12 +154,7 @@ export async function setCachedDocuments(
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("documents", plan);
 
-  await redis.set(
-    docsKey(userId),
-    JSON.stringify(data),
-    "EX",
-    ttl,
-  );
+  await redis.set(docsKey(userId), JSON.stringify(data), "EX", ttl);
 }
 
 export async function invalidateDocuments(userId: string) {
@@ -209,12 +180,7 @@ export async function setCachedDocumentStatus(
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("document_status", plan);
 
-  await redis.set(
-    docStatusKey(documentId),
-    JSON.stringify(data),
-    "EX",
-    ttl,
-  );
+  await redis.set(docStatusKey(documentId), JSON.stringify(data), "EX", ttl);
 }
 
 export async function invalidateDocumentStatus(documentId: string) {

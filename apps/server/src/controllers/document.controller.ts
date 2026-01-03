@@ -126,7 +126,7 @@ export const uploadDocument: RequestHandler = asyncHandler(
           s3Key: `documents/${userId}/${documentId}`,
         };
 
-        await invalidateDocuments(userId)
+        await invalidateDocuments(userId);
 
         await sendMessage(process.env.DOCUMENT_INGEST_QUEUE_URL!, message);
 
@@ -159,7 +159,7 @@ export const getDocumentStatus: RequestHandler = asyncHandler(
 
     if (cached) {
       logCacheHit("document_status", userId);
-      return res.json(cached);
+      return res.status(200).json(cached);
     }
     logCacheMiss("document_status", userId);
 
@@ -196,10 +196,10 @@ export const getDocumentStatus: RequestHandler = asyncHandler(
           progress: redisStatus.progress,
           error: redisStatus.error,
           source: "redis",
-        }
+        };
 
         await setCachedDocumentStatus(documentId!, response, plan);
-        return res.json(response);
+        return res.status(200).json(response);
       }
     }
 
@@ -209,11 +209,11 @@ export const getDocumentStatus: RequestHandler = asyncHandler(
       documentStatus: document.status,
       jobStatus: job?.status,
       source: "mongo",
-    }
+    };
 
     // 4. Fallback to MongoDB (authoritative)
     await setCachedDocumentStatus(documentId!, response, plan);
-    return res.json(response);
+    return res.status(200).json(response);
   },
 );
 
@@ -227,10 +227,10 @@ export const listDocuments: RequestHandler = asyncHandler(
     const userId = req.user.id;
     const cached = await getCachedDocuments(userId);
     const plan = await getUserPlan(userId);
-    
+
     if (cached) {
       logCacheHit("documents", userId);
-      return res.json(cached);
+      return res.status(200).json(cached);
     }
     logCacheMiss("documents", userId);
 
@@ -240,7 +240,7 @@ export const listDocuments: RequestHandler = asyncHandler(
       .lean();
 
     if (documents.length === 0) {
-      return res.json({ documents: [] });
+      return res.status(200).json({ documents: [] });
     }
 
     const documentIds = documents.map((doc) => doc._id);
@@ -283,7 +283,7 @@ export const listDocuments: RequestHandler = asyncHandler(
     });
 
     await setCachedDocuments(userId, { documents: response }, plan);
-    return res.json({ documents: response });
+    return res.status(200).json({ documents: response });
   },
 );
 

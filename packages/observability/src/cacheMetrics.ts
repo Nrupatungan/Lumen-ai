@@ -1,6 +1,5 @@
 import { logger } from "./logger.js";
 
-
 export type CacheType =
   | "profile"
   | "subscription"

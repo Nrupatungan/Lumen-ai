@@ -9,7 +9,7 @@ async function run() {
   const name = String(process.env.SEED_ADMIN_NAME);
   const image = String(process.env.SEED_ADMIN_IMAGE);
 
-  const existing = await User.findOne({email}).lean();
+  const existing = await User.findOne({ email }).lean();
   if (existing) {
     console.log("Admin already exists:", email);
     process.exit(0);

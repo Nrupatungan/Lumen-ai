@@ -3,7 +3,7 @@ import { authenticateJWT } from "../middlewares/jwt-verify.middleware.js";
 import {
   createOrder,
   verifyPayment,
-  getMySubscription
+  getMySubscription,
 } from "../controllers/payment.controller.js";
 
 const router: Router = Router();

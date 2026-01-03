@@ -2,7 +2,11 @@
 // Periodically aggregates Redis daily usage counters into Mongo UsageRecord
 
 import { UsageRecord } from "@repo/db";
-import { getCommandRedisClient, invalidateUsage, invalidateUsageDashboard } from "@repo/cache";
+import {
+  getCommandRedisClient,
+  invalidateUsage,
+  invalidateUsageDashboard,
+} from "@repo/cache";
 import { logger } from "@repo/observability";
 
 // Redis key pattern: usage:{userId}:{YYYY-MM-DD}
@@ -74,12 +78,11 @@ export async function handler() {
 
         // Optional: delete Redis key after successful sync
         await redis.del(key);
-        await invalidateUsage(userId)
-        await invalidateUsageDashboard(userId)
+        await invalidateUsage(userId);
+        await invalidateUsageDashboard(userId);
       }
     } while (cursor !== "0");
 
-    
     logger.info("[usage-sync] completed successfully");
   } catch (error) {
     logger.error("[usage-sync] failed", { error });

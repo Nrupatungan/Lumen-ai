@@ -6,8 +6,8 @@ import { getRazorpay } from "../libs/razorpay.js";
 import { logger, logCacheHit, logCacheMiss } from "@repo/observability";
 import { Plan, PLAN_POLICY } from "@repo/policy";
 import { getCachedSubscription, setCachedSubscription } from "@repo/cache";
-import { paymentVerificaitonSchema } from "../libs/validators/payment.validator.js";
 import z from "zod";
+import { orderSchema, paymentVerificaitonSchema } from "@repo/shared";
 
 const razorpay = getRazorpay();
 
@@ -21,11 +21,15 @@ export const createOrder: RequestHandler = asyncHandler(
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { plan } = req.body as { plan: Plan };
+    const parsed = orderSchema.safeParse(req.body);
 
-    if (!plan || !PLAN_POLICY[plan]) {
-      return res.status(400).json({ error: "Invalid plan" });
+    if (parsed.error) {
+      return res
+        .status(400)
+        .json({ error: "Invalid plan", details: z.treeifyError(parsed.error) });
     }
+
+    const { plan } = parsed.data;
 
     const price = PLAN_POLICY[plan].pricing.price;
 
@@ -44,10 +48,9 @@ export const createOrder: RequestHandler = asyncHandler(
       status: "created",
     });
 
-    logger.info(`Order created for user ${req.user.id}`)
+    logger.info(`Order created for user ${req.user.id}`);
 
-    return res.status(200)
-      .json({
+    return res.status(200).json({
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
@@ -67,11 +70,15 @@ export const verifyPayment: RequestHandler = asyncHandler(
 
     const parsed = paymentVerificaitonSchema.safeParse(req.body);
 
-    if(parsed.error){
-      return res.status(400).json({ error: "Missing payment fields", details: z.treeifyError(parsed.error) });
+    if (parsed.error) {
+      return res.status(400).json({
+        error: "Missing payment fields",
+        details: z.treeifyError(parsed.error),
+      });
     }
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = parsed.data;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } =
+      parsed.data;
 
     if (!(plan in PLAN_POLICY)) {
       return res.status(400).json({ error: "Invalid plan" });
@@ -110,7 +117,7 @@ export const verifyPayment: RequestHandler = asyncHandler(
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + PLAN_POLICY[plan].pricing.duration);
 
-    const subscription = await Subscription.findOneAndUpdate(
+    await Subscription.findOneAndUpdate(
       { userId: req.user.id },
       {
         plan,
@@ -118,17 +125,10 @@ export const verifyPayment: RequestHandler = asyncHandler(
         startDate,
         endDate,
       },
-      { upsert: true, new: true },
+      { upsert: true },
     );
 
-    return res.status(200).json({
-      subscription: {
-        plan: subscription.plan,
-        status: subscription.status,
-        startDate: subscription.startDate,
-        endDate: subscription.endDate,
-      },
-    });
+    return res.status(200).json({ message: "Verified payment successfully!" });
   },
 );
 
@@ -175,5 +175,5 @@ export const getMySubscription: RequestHandler = asyncHandler(
 
     logger.info(`Fetched subscription for user: ${userId}`);
     return res.status(200).json(response);
-  }
+  },
 );

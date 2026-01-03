@@ -45,7 +45,7 @@ export const handler = async (event: SQSEvent) => {
 
       // 1. Resolve user's plan & embedding policy
       const plan = await getUserPlan(userId);
-      const { vectorStore, policy } = createRagClients(plan)
+      const { vectorStore, policy } = createRagClients(plan);
 
       // 2. Resolve text
       if (textLocation.type !== "inline") {
@@ -120,14 +120,12 @@ export const handler = async (event: SQSEvent) => {
         progress: 100,
       });
 
-      
-
       logger.info("Chunk + embed completed", {
         jobId,
         documentId,
         chunks: documents.length,
         embedding: policy.embeddings.model,
-        plan
+        plan,
       });
     } catch (error) {
       logger.error("Chunk + embed failed", { error, jobId, documentId });
