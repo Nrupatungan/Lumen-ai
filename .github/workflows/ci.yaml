@@ -88,6 +88,9 @@ jobs:
       # ------------------------------
       # Static analysis
       # ------------------------------
+      - name: Build
+        run: pnpm build
+        
       - name: Type Check
         run: pnpm check-types
 
@@ -102,10 +105,3 @@ jobs:
       #- name: Run tests
       #  run: pnpm test
       # ------------------------------
-
-
-      # ------------------------------
-      # Build
-      # ------------------------------
-      - name: Build
-        run: pnpm build
