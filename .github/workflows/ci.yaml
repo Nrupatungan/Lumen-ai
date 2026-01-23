@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    # env:
+    #   MONGOMS_VERSION: "7.0.5"
+    #   MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+    #   TURBO_TELEMETRY_DISABLED: 1
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ------------------------------
+      # Install Node
+      # ------------------------------
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          check-latest: true
+
+      # ------------------------------
+      # Enable pnpm
+      # ------------------------------
+      - name: Enable pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest-10 --activate
+          pnpm --version
+
+      # ------------------------------
+      # Cache pnpm store
+      # ------------------------------
+      - name: Determine pnpm store path
+        id: pnpm-store
+        run: echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      # ------------------------------
+      # Cache MongoDB binaries
+      # ------------------------------
+      # - name: Cache MongoDB binaries
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.cache/mongodb-binaries
+      #     key: mongodb-${{ runner.os }}-${{ env.MONGOMS_VERSION }}
+      #     restore-keys: |
+      #       mongodb-${{ runner.os }}-
+
+      # ------------------------------
+      # Cache Turbo
+      # ------------------------------
+      - name: Cache Turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      # ------------------------------
+      # pnpm install
+      # ------------------------------
+      - name: Fetch dependencies
+        run: pnpm fetch
+
+      - name: Install dependencies (offline)
+        run: pnpm install --offline --frozen-lockfile
+
+      # ------------------------------
+      # Static analysis
+      # ------------------------------
+      - name: Build
+        run: pnpm build
+        
+      - name: Type Check
+        run: pnpm check-types
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      # ------------------------------
+      # Tests
+      #- name: Run tests
+      #  run: pnpm test
+      # ------------------------------

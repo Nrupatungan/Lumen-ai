@@ -1,10 +1,10 @@
 import { SQSEvent } from "aws-lambda";
-import { DocumentModel, IngestionJob } from "@repo/db";
+import { connectDB, DocumentModel, IngestionJob } from "@repo/db";
 import {
-  invalidateDocumentStatus,
-  setJobStage,
-  setJobStatus,
-} from "@repo/cache";
+  invalidateDocumentStatusRest,
+  setJobStageRest,
+  setJobStatusRest,
+} from "@repo/cache/rest";
 import { sendMessage } from "@repo/aws";
 import {
   DocumentIngestMessage,
@@ -12,11 +12,17 @@ import {
   OCRMessage,
 } from "@repo/queue";
 import { logger } from "@repo/observability";
-import { PLAN_POLICY, getUserPlan } from "@repo/policy";
+import { PLAN_POLICY } from "@repo/policy/plans";
+import { getUserPlan } from "@repo/policy/utils";
+import { loadConfig } from "../utils/cachedConfig.js";
 
 const TEXT_EXTRACT_SOURCES = ["pdf", "docx", "pptx", "epub", "md", "txt"];
 
 export const handler = async (event: SQSEvent) => {
+  const { MONGO_URI, URL, TOKEN } = await loadConfig();
+
+  await connectDB(MONGO_URI, process.env.MONGO_DB_NAME!);
+
   for (const record of event.Records) {
     let payload: DocumentIngestMessage;
 
@@ -40,19 +46,19 @@ export const handler = async (event: SQSEvent) => {
         status: "processing",
       });
 
-      await invalidateDocumentStatus(documentId);
+      await invalidateDocumentStatusRest(documentId, URL, TOKEN);
 
       // 3. Redis (best-effort)
-      await setJobStatus(jobId, "processing");
-      await setJobStage(jobId, "routing");
+      await setJobStatusRest(jobId, "processing", URL, TOKEN);
+      await setJobStageRest(jobId, "routing", URL, TOKEN);
 
       // 4. OCR sources (policy gated)
       if (sourceType === "image") {
         if (!policy.ingestion.ocr) {
-          await setJobStatus(jobId, "failed");
-          await setJobStage(jobId, "blocked");
+          await setJobStatusRest(jobId, "failed", URL, TOKEN);
+          await setJobStageRest(jobId, "blocked", URL, TOKEN);
 
-          await invalidateDocumentStatus(documentId);
+          await invalidateDocumentStatusRest(documentId, URL, TOKEN);
 
           logger.warn("Ingestion blocked by plan policy", {
             jobId,
@@ -67,11 +73,11 @@ export const handler = async (event: SQSEvent) => {
 
         const msg: OCRMessage = { jobId, documentId, userId, s3Key };
 
-        await setJobStage(jobId, "ocr");
+        await setJobStageRest(jobId, "ocr", URL, TOKEN);
 
         await sendMessage(process.env.OCR_EXTRACT_QUEUE_URL!, msg);
 
-        await invalidateDocumentStatus(documentId);
+        await invalidateDocumentStatusRest(documentId, URL, TOKEN);
 
         logger.info("Routed to OCR pipeline", { jobId, documentId });
         continue;
@@ -84,13 +90,14 @@ export const handler = async (event: SQSEvent) => {
           documentId,
           userId,
           s3Key,
+          sourceType,
         };
 
-        await setJobStage(jobId, "extracting_text");
+        await setJobStageRest(jobId, "extracting_text", URL, TOKEN);
 
         await sendMessage(process.env.TEXT_EXTRACT_QUEUE_URL!, msg);
 
-        await invalidateDocumentStatus(documentId);
+        await invalidateDocumentStatusRest(documentId, URL, TOKEN);
 
         logger.info("Routed to text extraction pipeline", {
           jobId,
@@ -113,9 +120,9 @@ export const handler = async (event: SQSEvent) => {
 
       await DocumentModel.findByIdAndUpdate(documentId, { status: "failed" });
 
-      await setJobStatus(jobId, "failed");
-      await setJobStage(jobId, "routing_failed");
-      await invalidateDocumentStatus(documentId);
+      await setJobStatusRest(jobId, "failed", URL, TOKEN);
+      await setJobStageRest(jobId, "routing_failed", URL, TOKEN);
+      await invalidateDocumentStatusRest(documentId, URL, TOKEN);
     }
   }
 };

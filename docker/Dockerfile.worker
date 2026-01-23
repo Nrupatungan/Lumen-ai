@@ -7,7 +7,7 @@ WORKDIR /app
 
 
 # ===========================================
-# 2. Root deps (pnpm store only)
+# 2. Root deps (pnpm store)
 # ===========================================
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
@@ -15,7 +15,7 @@ RUN pnpm fetch
 
 
 # ===========================================
-# 3. Prune (workers scope)
+# 3. Prune workspace for workers
 # ===========================================
 FROM base AS prune
 COPY . .
@@ -23,40 +23,44 @@ RUN pnpm dlx turbo prune --scope=workers --docker
 
 
 # ===========================================
-# 4. Build (FULL pruned workspace)
+# 4. Build workers
 # ===========================================
 FROM base AS build
 
-# Copy full pruned workspace (workers + packages)
+# Copy pruned workspace
 COPY --from=prune /app/out/full/ ./
 
 # Restore pnpm store
 COPY --from=deps /app/node_modules/.pnpm /app/node_modules/.pnpm
 
-# Install ALL deps for workers workspace
+# Install deps
 RUN pnpm install --prefer-offline --no-frozen-lockfile
 
-# Build workers (produces dist/)
+# Build workers (dist/)
 RUN pnpm --filter workers build
 
 
 # ===========================================
-# 5. Production Image (stable)
+# 5. Production Image
 # ===========================================
 FROM node:24-alpine AS prod
 RUN apk add --no-cache gcompat
 RUN corepack enable && corepack prepare pnpm@latest-10 --activate
 WORKDIR /app
 
-# Copy workspace metadata (pruned)
+# Workspace metadata
 COPY --from=prune /app/out/json/ ./
 COPY pnpm-lock.yaml ./
 
-# Copy built workers output
+# Built workers
 COPY --from=build /app/apps/workers/dist ./dist
+COPY --from=build /app/packages ./packages
 
-# Copy workers package.json
+# workers package.json
 COPY --from=prune /app/out/full/apps/workers/package.json ./package.json
 
-# ---- Install ONLY production deps ----
+# Install prod deps only
 RUN pnpm install --prod --ignore-scripts
+
+# ECS overrides CMD
+CMD ["node", "dist/index.js"]

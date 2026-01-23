@@ -1,4 +1,5 @@
-import { apiClient } from "@/lib/apiClient";
+import { api } from "@/lib/apiClient";
+import { Plan } from "@repo/policy/plans";
 import { useQuery } from "@tanstack/react-query";
 
 export type Me = {
@@ -7,18 +8,27 @@ export type Me = {
   name: string;
   image?: string | null;
   role: "admin" | "user";
-  plan: "Free" | "Go" | "Pro";
+  plan: Plan;
   createdAt: Date;
 };
 
-export function useMe(isAuthenticated: boolean) {
-  return useQuery<Me>({
-    queryKey: ["me", isAuthenticated],
+export function useMe() {
+  return useQuery<Me | null>({
+    queryKey: ["me"],
     queryFn: async () => {
-      if (!isAuthenticated) return null;
-      return await apiClient.getUserDetails();
+      try {
+        const res = await api.get("/users/me", {
+          headers: { "Cache-control": "no-cache" },
+        });
+        return res.data?.userProfile ?? null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        if (err.response?.status === 401) {
+          throw err; // real unauthenticated
+        }
+        return null; // server error, but keep session
+      }
     },
-    staleTime: 15 * 60 * 1000,
-    retry: false, // don’t spam backend on auth failure
+    retry: false,
   });
 }

@@ -8,7 +8,7 @@ connectDB(process.env.MONGO_URI!, process.env.MONGO_DB_NAME!);
 
 initProgressWebSocket(server);
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   logger.info(`Server running on PORT: ${PORT}`);
 });
 

@@ -8,16 +8,13 @@ import {
 import { handler } from "./handler.js";
 import { logger } from "@repo/observability";
 import { SQSRecord } from "aws-lambda";
-import { isShuttingDown, setupGracefulShutdown } from "../utils/shutdown.js";
+import { setupGracefulShutdown, isShuttingDown } from "../utils/shutdown.js";
 
-const QUEUE_URL = process.env.CHUNK_EMBED_QUEUE_URL!;
-const POLL_INTERVAL_MS = 1000;
-const VISIBILITY_TIMEOUT = 600; // 5 minutes
+const QUEUE_URL = String(process.env.DELETE_QUEUE_URL);
+const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS);
+const VISIBILITY_TIMEOUT = Number(process.env.VISIBILITY_TIMEOUT);
+const AWS_REGION = String(process.env.AWS_REGION);
 
-/**
- * Convert SQS SDK message → Lambda SQSRecord
- * (required to keep handler 100% Lambda-compatible)
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toSqsRecord(message: any): SQSRecord {
   const now = Date.now().toString();
@@ -35,8 +32,8 @@ function toSqsRecord(message: any): SQSRecord {
     messageAttributes: {},
     md5OfBody: "",
     eventSource: "aws:sqs",
-    eventSourceARN: "arn:aws:sqs:us-east-1:000000000000:document-chunk-embed",
-    awsRegion: "us-east-1",
+    eventSourceARN: String(process.env.DELETE_QUEUE_ARN),
+    awsRegion: AWS_REGION,
   };
 }
 
@@ -44,45 +41,42 @@ async function pollOnce() {
   const messages = await receiveMessages(QUEUE_URL, {
     maxMessages: 5,
     waitTimeSeconds: 20,
-    visibilityTimeout: 300,
+    visibilityTimeout: VISIBILITY_TIMEOUT,
   });
 
   if (!messages.length) return;
 
-  logger.info(`[chunk-embed] received ${messages.length} messages`);
+  logger.info(`[worker] received ${messages.length} messages`);
 
-  await handler({
-    Records: messages.map(toSqsRecord),
-  });
+  // 🔐 Extend visibility for entire batch
+  const extenders = messages.map((msg) =>
+    startVisibilityExtender(QUEUE_URL, msg.ReceiptHandle!, VISIBILITY_TIMEOUT),
+  );
 
-  // delete ONLY after successful handler execution
-  for (const msg of messages) {
-    const extender = startVisibilityExtender(
-      QUEUE_URL,
-      msg.ReceiptHandle!,
-      VISIBILITY_TIMEOUT,
-    );
+  try {
+    // ✅ SINGLE handler execution
+    await handler({
+      Records: messages.map(toSqsRecord),
+    });
 
-    try {
-      await handler({
-        Records: [toSqsRecord(msg)],
-      });
-
+    // ✅ Delete after successful processing
+    for (const msg of messages) {
       await deleteMessage(QUEUE_URL, msg.ReceiptHandle!);
-    } finally {
-      extender.stop();
     }
+  } finally {
+    // 🔕 Stop all extenders
+    for (const e of extenders) e.stop();
   }
 }
 
 async function start() {
-  logger.info("[text-extract] local worker started");
+  logger.info("[document-delete] local worker started");
 
   while (!isShuttingDown()) {
     try {
       await pollOnce();
     } catch (error) {
-      logger.error("[text-extract] polling failed", {
+      logger.error("[document-delete] polling failed", {
         error,
         errorString: String(error),
       });
@@ -91,7 +85,7 @@ async function start() {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 
-  logger.info("[text-extract] polling stopped (shutdown)");
+  logger.info("[document-delete] polling stopped (shutdown)");
 }
 
 setupGracefulShutdown();

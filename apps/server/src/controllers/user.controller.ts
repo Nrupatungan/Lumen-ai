@@ -1,16 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response, RequestHandler } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import {
-  User,
-  Subscription,
-  DocumentModel,
-  Conversation,
-  Message,
-  Account,
-  VerificationToken,
-  PasswordResetToken,
-} from "@repo/db";
+import { User, Account, VerificationToken, PasswordResetToken } from "@repo/db";
 import {
   getCachedUserProfile,
   setCachedUserProfile,
@@ -54,7 +45,10 @@ export const getMe: RequestHandler = asyncHandler(
     const cached = await getCachedUserProfile(userId);
     if (cached) {
       logCacheHit("profile", userId);
-      return res.status(200).json(cached);
+      return res.status(200).json({
+        userProfile: cached,
+        source: "cache",
+      });
     }
 
     logCacheMiss("profile", userId);
@@ -91,9 +85,15 @@ export const getMe: RequestHandler = asyncHandler(
 
     const user = result[0];
 
-    const imageURL = user.image
-      ? await getObjectUrl(process.env.S3_BUCKET_NAME!, user.image)
-      : null;
+    let imageURL: string | null = null;
+
+    if (typeof user.image === "string") {
+      if (user.image.startsWith("users/profile")) {
+        imageURL = await getObjectUrl(process.env.S3_BUCKET_NAME!, user.image);
+      } else {
+        imageURL = user.image;
+      }
+    }
 
     const response = {
       id: user._id,
@@ -109,7 +109,7 @@ export const getMe: RequestHandler = asyncHandler(
     await setCachedUserProfile(userId, response, user.plan);
 
     logger.info(`Fetched profile details for user ${userId}`);
-    return res.status(200).json(response);
+    return res.status(200).json({ userProfile: response, source: "mongo" });
   },
 );
 
@@ -239,13 +239,7 @@ export const deleteMe: RequestHandler = asyncHandler(
     const userId = req.user.id;
 
     // Soft-delete pattern is better, but hard delete for now
-    await Promise.all([
-      User.findByIdAndDelete(userId),
-      Subscription.deleteOne({ userId }),
-      DocumentModel.deleteMany({ userId }),
-      Conversation.deleteMany({ userId }),
-      Message.deleteMany({ userId }),
-    ]);
+    await User.findByIdAndDelete(userId);
 
     await invalidateAllUserCaches(userId);
 

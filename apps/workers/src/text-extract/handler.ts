@@ -12,16 +12,17 @@ import {
 } from "@repo/cache";
 import { sendMessage, getObjectStream } from "@repo/aws";
 import { TextExtractMessage, ChunkEmbedMessage } from "@repo/queue";
-import { DocumentModel, IngestionJob } from "@repo/db";
+import { connectDB, DocumentModel, IngestionJob } from "@repo/db";
 import { logger } from "@repo/observability";
 
-// LangChain loaders (strategy only – minimal refactor)
+// Langchain Loaders
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { TextLoader } from "@langchain/classic/document_loaders/fs/text";
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { PPTXLoader } from "@langchain/community/document_loaders/fs/pptx";
 import { EPubLoader } from "@langchain/community/document_loaders/fs/epub";
 import { marked } from "marked";
+import { DocumentSourceType } from "@repo/policy/plans";
 
 async function streamToTempFile(stream: Readable, filename: string) {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ingest-"));
@@ -36,15 +37,18 @@ async function streamToTempFile(stream: Readable, filename: string) {
   return filePath;
 }
 
+// Remove HTML tags
 function stripHtmlTags(extractHtml: string): string {
-  return extractHtml.replace(/<[^>]*>/g, ""); // Remove HTML tags
+  return extractHtml.replace(/<[^>]*>/g, "");
 }
 
-function getLoader(sourceType: string, filePath: string) {
+type TextSourceTypes = Omit<DocumentSourceType, "image" | "url">;
+
+function getLoader(sourceType: TextSourceTypes, filePath: string) {
   switch (sourceType) {
     case "pdf":
       return new PDFLoader(filePath);
-    case "text":
+    case "txt":
       return new TextLoader(filePath);
     case "docx":
       return new DocxLoader(filePath);
@@ -57,7 +61,12 @@ function getLoader(sourceType: string, filePath: string) {
   }
 }
 
+const URI = String(process.env.MONGO_URI);
+const DB_NAME = String(process.env.MONGO_DB_NAME);
+
 export const handler = async (event: SQSEvent) => {
+  await connectDB(URI, DB_NAME);
+
   for (const record of event.Records) {
     let payload: TextExtractMessage;
 
@@ -79,7 +88,7 @@ export const handler = async (event: SQSEvent) => {
       await publishJobUpdate(jobId, { stage: "extracting_text", progress: 10 });
       await invalidateDocumentStatus(documentId);
 
-      // 1. Download file from S3 (same behavior as before)
+      // 1. Download file from S3
       const stream = await getObjectStream(process.env.S3_BUCKET_NAME!, s3Key);
 
       const filePath = await streamToTempFile(stream, path.basename(s3Key));
@@ -90,7 +99,7 @@ export const handler = async (event: SQSEvent) => {
       // 2. Extract text using loader strategy
       let extractedText = "";
 
-      if (sourceType === "markdown") {
+      if (sourceType === "md") {
         const raw = await fs.readFile(filePath, "utf8");
         const extractHtml = await marked.parse(raw);
         extractedText = stripHtmlTags(extractHtml);
@@ -110,7 +119,6 @@ export const handler = async (event: SQSEvent) => {
       await setJobProgress(jobId, 60);
       await publishJobUpdate(jobId, { stage: "extracting_text", progress: 60 });
 
-      // 3. Forward extracted text to chunk + embed (unchanged)
       const nextMessage: ChunkEmbedMessage = {
         jobId,
         documentId,
@@ -131,7 +139,6 @@ export const handler = async (event: SQSEvent) => {
     } catch (error) {
       logger.error("Text extraction failed", { error, jobId, documentId });
 
-      // Mongo: authoritative failure state
       await IngestionJob.findByIdAndUpdate(jobId, {
         status: "failed",
         error: String(error),
@@ -141,7 +148,6 @@ export const handler = async (event: SQSEvent) => {
         status: "failed",
       });
 
-      // Redis: best-effort failure state
       await setJobStatus(jobId, "failed");
       await setJobStage(jobId, "text_extraction_failed");
       await publishJobUpdate(jobId, {

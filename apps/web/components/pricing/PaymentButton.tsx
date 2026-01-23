@@ -3,11 +3,11 @@
 import React from "react";
 import { apiClient } from "@/lib/apiClient";
 import { loadScript } from "@/utils";
-import { Button } from "@mui/material";
+import { Button, Typography } from "@mui/material";
 import { Session } from "next-auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plan } from "@repo/policy";
+import { Plan } from "@repo/policy/plans";
 import { INormalizeError } from "razorpay/dist/types/api";
 import { useMe } from "@/hooks/useMe";
 
@@ -27,7 +27,24 @@ export interface RazorpayResponse {
 
 export default function PaymentButton({ tier }: PaymentButtonProps) {
   const router = useRouter();
-  const { data } = useMe(!!tier.session);
+  const { data: me, isLoading } = useMe();
+
+  if (isLoading) return <Typography sx={{ mt: 4 }}>Loading...</Typography>;
+
+  if (!me) {
+    // User is not authenticated or profile unavailable
+    return (
+      <Button
+        LinkComponent={Link}
+        href="/sign-in"
+        fullWidth
+        variant="outlined"
+        sx={{ mt: 4, textTransform: "inherit" }}
+      >
+        Sign in to continue
+      </Button>
+    );
+  }
 
   async function displayRazorpay() {
     if (!tier.session?.user) {
@@ -69,8 +86,8 @@ export default function PaymentButton({ tier }: PaymentButtonProps) {
         }
       },
       prefill: {
-        name: data?.name,
-        email: data?.email,
+        name: me?.name,
+        email: me?.email,
       },
     };
 

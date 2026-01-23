@@ -8,9 +8,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/index.ts",
-    "worker:text-extract": "tsx src/text-extract/runLocal.ts",
-    "worker:chunk-embed": "tsx src/chunk-embed/runLocal.ts",
-    "worker:document-delete": "tsx src/document-delete/runLocal.ts",
+    "start": "node dist/index.js",
+    "worker:text-extract": "tsx src/text-extract/runner.ts",
+    "worker:chunk-embed": "tsx src/chunk-embed/runner.ts",
+    "worker:document-delete": "tsx src/document-delete/runner.ts",
     "lint": "eslint --max-warnings 0",
     "lint:fix": "eslint --fix",
     "check-types": "tsc --noEmit"

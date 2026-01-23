@@ -54,6 +54,7 @@ COPY pnpm-lock.yaml ./
 
 # Copy built server output
 COPY --from=build /app/apps/server/dist ./dist
+COPY --from=build /app/packages ./packages
 
 # Copy server package
 COPY --from=prune /app/out/full/apps/server/package.json ./package.json

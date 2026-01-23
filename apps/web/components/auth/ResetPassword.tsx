@@ -23,6 +23,7 @@ import { ResetPasswordInput, resetPasswordSchema } from "@/lib/validation/auth";
 
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
+import { useToast } from "@/hooks/useToast";
 
 export default function ResetPassword() {
   const searchParams = useSearchParams();
@@ -32,6 +33,7 @@ export default function ResetPassword() {
     "loading" | "form" | "success" | "error"
   >("loading");
   const [message, setMessage] = useState("Checking reset link...");
+  const { toast } = useToast();
 
   const { register, handleSubmit, formState } = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
@@ -39,12 +41,17 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (!token) {
+      toast({
+        title: "Reset password",
+        severity: "error",
+        description: "Invalid password reset link.",
+      });
       setStatus("error");
       setMessage("Invalid password reset link.");
       return;
     }
     setStatus("form");
-  }, [token]);
+  }, [toast, token]);
 
   const onSubmit = async (data: ResetPasswordInput) => {
     setStatus("loading");
@@ -56,10 +63,23 @@ export default function ResetPassword() {
         password: data.password,
       });
 
+      toast({
+        title: "Reset password",
+        severity: "success",
+        description: "Password has been reset. You can now log in.",
+      });
+
       setStatus("success");
       setMessage("Password has been reset. You can now log in.");
     } catch (err) {
       console.error(err);
+
+      toast({
+        title: "Reset password",
+        severity: "error",
+        description: err ? (err as string) : "Invalid link or expired token.",
+      });
+
       setStatus("error");
       setMessage("Invalid or expired reset token.");
     }

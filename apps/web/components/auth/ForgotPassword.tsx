@@ -27,17 +27,18 @@ import {
   requestPasswordResetSchema,
 } from "@repo/shared";
 import { AppLogoIcon } from "@/components/CustomIcon";
+import { useToast } from "@/hooks/useToast";
 
 export default function ForgotPassword() {
   const [emailSent, setEmailSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setError,
     getValues,
   } = useForm<RequestPasswordResetInput>({
     resolver: zodResolver(requestPasswordResetSchema),
@@ -51,8 +52,13 @@ export default function ForgotPassword() {
       setEmailSent(true);
     } catch (err) {
       console.error(err);
-      setError("root", {
-        message: "If an account exists, a reset link will be sent.",
+      toast({
+        title: "Password reset request",
+        severity: "error",
+        description: err
+          ? (err as string)
+          : "If an account exists, a reset link will be sent.",
+        duration: 5000,
       });
     } finally {
       setLoading(false);
@@ -220,12 +226,6 @@ export default function ForgotPassword() {
                     helperText={errors.email?.message}
                     fullWidth
                   />
-
-                  {errors.root && (
-                    <Typography color="error" variant="body2">
-                      {errors.root.message}
-                    </Typography>
-                  )}
 
                   <Button
                     type="submit"

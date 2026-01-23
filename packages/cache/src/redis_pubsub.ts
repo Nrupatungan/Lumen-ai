@@ -1,8 +1,7 @@
 // Dedicated Redis Pub/Sub client + helpers
-// IMPORTANT: This client MUST NOT be used for normal GET/SET commands
-
 import { Redis } from "ioredis";
 
+const REDIS_URL = String(process.env.REDIS_URL);
 let pubSubClient: Redis | null = null;
 
 /**
@@ -11,11 +10,9 @@ let pubSubClient: Redis | null = null;
  */
 export function getRedisPubSubClient(): Redis {
   if (!pubSubClient) {
-    pubSubClient = new Redis({
-      host: process.env.REDIS_HOST,
-      port: Number(process.env.REDIS_PORT),
-      maxRetriesPerRequest: null, // required for pub/sub stability
-      enableReadyCheck: false,
+    pubSubClient = new Redis(REDIS_URL, {
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: true,
     });
 
     pubSubClient.on("connect", () => {

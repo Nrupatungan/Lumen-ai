@@ -1,4 +1,4 @@
 import "dotenv/config";
-import "./text-extract/runLocal.js";
-import "./chunk-embed/runLocal.js";
-import "./document-delete/runLocal.js";
+import "./text-extract/runner.js";
+import "./chunk-embed/runner.js";
+import "./document-delete/runner.js";

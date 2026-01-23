@@ -4,10 +4,17 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Payment, Subscription } from "@repo/db";
 import { getRazorpay } from "../libs/razorpay.js";
 import { logger, logCacheHit, logCacheMiss } from "@repo/observability";
-import { Plan, PLAN_POLICY } from "@repo/policy";
-import { getCachedSubscription, setCachedSubscription } from "@repo/cache";
+import { Plan, PLAN_POLICY } from "@repo/policy/plans";
+import {
+  getCachedPayments,
+  getCachedSubscription,
+  invalidatePayments,
+  setCachedPayments,
+  setCachedSubscription,
+} from "@repo/cache";
 import z from "zod";
 import { orderSchema, paymentVerificaitonSchema } from "@repo/shared";
+import { getUserPlan } from "@repo/policy/utils";
 
 const razorpay = getRazorpay();
 
@@ -21,6 +28,7 @@ export const createOrder: RequestHandler = asyncHandler(
       return res.status(401).json({ error: "Unauthorized" });
     }
 
+    const userId = req.user.id;
     const parsed = orderSchema.safeParse(req.body);
 
     if (parsed.error) {
@@ -41,14 +49,16 @@ export const createOrder: RequestHandler = asyncHandler(
 
     // Persist payment intent
     await Payment.create({
-      userId: req.user.id,
+      userId,
       orderId: order.id,
       amount: price,
       currency: order.currency,
       status: "created",
     });
 
-    logger.info(`Order created for user ${req.user.id}`);
+    await invalidatePayments(userId);
+
+    logger.info(`Order created for user ${userId}`);
 
     return res.status(200).json({
       orderId: order.id,
@@ -68,6 +78,7 @@ export const verifyPayment: RequestHandler = asyncHandler(
       return res.status(401).json({ error: "Unauthorized" });
     }
 
+    const userId = req.user.id;
     const parsed = paymentVerificaitonSchema.safeParse(req.body);
 
     if (parsed.error) {
@@ -93,13 +104,14 @@ export const verifyPayment: RequestHandler = asyncHandler(
       .digest("hex");
 
     if (expectedSignature !== razorpay_signature) {
-      logger.warn("Razorpay signature mismatch", { userId: req.user.id });
+      logger.warn("Razorpay signature mismatch", { userId });
 
       await Payment.findOneAndUpdate(
         { orderId: razorpay_order_id },
         { status: "failed" },
       );
 
+      await invalidatePayments(userId);
       return res.status(400).json({ error: "Invalid signature" });
     }
 
@@ -118,7 +130,7 @@ export const verifyPayment: RequestHandler = asyncHandler(
     endDate.setDate(endDate.getDate() + PLAN_POLICY[plan].pricing.duration);
 
     await Subscription.findOneAndUpdate(
-      { userId: req.user.id },
+      { userId },
       {
         plan,
         status: "active",
@@ -128,7 +140,48 @@ export const verifyPayment: RequestHandler = asyncHandler(
       { upsert: true },
     );
 
+    await invalidatePayments(userId);
+
     return res.status(200).json({ message: "Verified payment successfully!" });
+  },
+);
+
+/**
+ * GET /payments/
+ * Return current user's payments
+ */
+export const getMyPayments: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.user || !req.user.id) {
+      logger.warn("Unauthorized subscription access");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const userId = req.user.id;
+    const plan = await getUserPlan(userId);
+    const cached = await getCachedPayments(userId);
+
+    if (cached) {
+      logCacheHit("payments", userId);
+      return res.status(200).json({
+        payments: cached,
+        source: "cache",
+      });
+    }
+
+    logCacheMiss("payments", userId);
+
+    const payments = await Payment.find({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    setCachedPayments(userId, payments, plan);
+
+    logger.info(`Fetched subscription for user: ${userId}`);
+    return res.status(200).json({
+      payments,
+      source: "mongo",
+    });
   },
 );
 
@@ -138,7 +191,7 @@ export const verifyPayment: RequestHandler = asyncHandler(
  */
 export const getMySubscription: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
-    if (!req.user?.id) {
+    if (!req.user || !req.user.id) {
       logger.warn("Unauthorized subscription access");
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -149,7 +202,10 @@ export const getMySubscription: RequestHandler = asyncHandler(
     const cached = await getCachedSubscription(userId);
     if (cached) {
       logCacheHit("subscription", userId);
-      return res.status(200).json(cached);
+      return res.status(200).json({
+        subscription: cached,
+        source: "cache",
+      });
     }
 
     logCacheMiss("subscription", userId);
@@ -174,6 +230,9 @@ export const getMySubscription: RequestHandler = asyncHandler(
     await setCachedSubscription(userId, response, plan as Plan);
 
     logger.info(`Fetched subscription for user: ${userId}`);
-    return res.status(200).json(response);
+    return res.status(200).json({
+      subscription: response,
+      source: "mongo",
+    });
   },
 );

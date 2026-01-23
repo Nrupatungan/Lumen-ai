@@ -1,12 +1,11 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import Busboy from "busboy";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { DocumentModel, IngestionJob } from "@repo/db";
+import { DocumentChunk, DocumentModel, IngestionJob } from "@repo/db";
 import {
   setJobProgress,
   setJobStage,
   setJobStatus,
-  setDocumentStatus,
   getJobProgress,
   invalidateDocuments,
   getCachedDocuments,
@@ -19,8 +18,15 @@ import { DocumentIngestMessage } from "@repo/queue";
 import { sendMessage, uploadStreamToS3 } from "@repo/aws";
 import { PassThrough } from "node:stream";
 import { logCacheHit, logCacheMiss, logger } from "@repo/observability";
-import { PLAN_POLICY, getUserPlan, DocumentSourceType } from "@repo/policy";
+import { getUserPlan } from "@repo/policy/utils";
+import { DocumentSourceType, PLAN_POLICY } from "@repo/policy/plans";
+import { resolveSourceType } from "../utils/sourceTypeResolver.js";
+import crypto from "node:crypto";
 
+/**
+ * POST /documents/upload
+ * Uploads users document.
+ */
 export const uploadDocument: RequestHandler = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user || !req.user.id) {
@@ -34,82 +40,61 @@ export const uploadDocument: RequestHandler = asyncHandler(
     let documentId: string | null = null;
     let jobId: string | null = null;
     let uploadPromise: Promise<void> | null = null;
+    let sourceType: DocumentSourceType;
+    let s3Key: string;
 
-    busboy.on("file", async (_fieldname, file, info) => {
-      (async () => {
-        try {
-          const { filename, mimeType } = info;
+    busboy.on("file", (_fieldname, file, info) => {
+      const { filename, mimeType } = info;
 
-          const plan = await getUserPlan(userId.toString());
-          const policy = PLAN_POLICY[plan];
+      uploadPromise = (async () => {
+        const plan = await getUserPlan(userId.toString());
+        const policy = PLAN_POLICY[plan];
 
-          if (
-            !policy.documents.allowedSourceTypes.includes(
-              mimeType as DocumentSourceType,
-            )
-          ) {
-            return res.status(403).json({
-              error: `Your ${plan} plan does not allow uploading ${mimeType} documents`,
-            });
-          }
+        sourceType = resolveSourceType(filename)!;
+        if (!sourceType) throw new Error("Unsupported file type");
 
-          const existingCount = await DocumentModel.countDocuments({ userId });
-          if (existingCount >= policy.documents.maxDocuments) {
-            return res.status(403).json({
-              error: `Your ${plan} plan allows only ${policy.documents.maxDocuments} documents`,
-            });
-          }
-
-          // 1. Create Mongo records early
-          const document = await DocumentModel.create({
-            userId,
-            name: filename,
-            sourceType: mimeType.includes("pdf") ? "pdf" : "txt",
-            s3Key: "",
-            status: "uploaded",
-          });
-
-          const job = await IngestionJob.create({
-            documentId: document._id,
-            status: "queued",
-          });
-
-          documentId = document._id.toString();
-          jobId = job._id.toString();
-
-          // 2. Initialize Redis (best-effort)
-          await setJobStatus(jobId, "queued");
-          await setJobStage(jobId, "uploading");
-          await setJobProgress(jobId, 0);
-          await setDocumentStatus(documentId, "uploaded");
-
-          // 3. Stream to S3
-          const s3Key = `documents/${userId}/${documentId}`;
-          const pass = new PassThrough();
-
-          // 🔐 stream error handling
-          file.on("error", next);
-          pass.on("error", next);
-
-          uploadPromise = uploadStreamToS3(
-            process.env.S3_BUCKET_NAME!,
-            s3Key,
-            pass,
-            mimeType,
-          );
-          file.pipe(pass);
-
-          // 4. Update document with S3 key
-          document.s3Key = s3Key;
-          await document.save();
-        } catch (error) {
-          next(error);
+        if (!policy.documents.allowedSourceTypes.includes(sourceType)) {
+          throw new Error("Plan does not allow this file type");
         }
-      })();
+
+        s3Key = `documents/${crypto.randomUUID()}-${filename}`;
+        const name = `${crypto.randomBytes(7).toString("hex")}-${filename.split(".")[0]}`;
+
+        const document = await DocumentModel.create({
+          userId,
+          name,
+          sourceType,
+          s3Key,
+          status: "uploaded",
+        });
+
+        const job = await IngestionJob.create({
+          userId,
+          documentId: document._id,
+          status: "queued",
+        });
+
+        documentId = document._id.toString();
+        jobId = job._id.toString();
+
+        await setJobStatus(jobId, "queued");
+        await setJobStage(jobId, "uploading");
+        await setJobProgress(jobId, 0);
+
+        const pass = new PassThrough();
+        file.pipe(pass);
+
+        await uploadStreamToS3(
+          process.env.S3_BUCKET_NAME!,
+          s3Key,
+          pass,
+          mimeType,
+        );
+      })().catch(next);
     });
 
     busboy.on("finish", async () => {
-      if (!uploadPromise || !documentId || !jobId) {
+      if (!uploadPromise || !documentId || !jobId || !sourceType) {
         logger.error("No file uploaded");
         return res.status(400).json({ error: "No file uploaded" });
       }
@@ -122,13 +107,15 @@ export const uploadDocument: RequestHandler = asyncHandler(
           jobId,
           documentId,
           userId: userId.toString(),
-          sourceType: "pdf",
-          s3Key: `documents/${userId}/${documentId}`,
+          sourceType,
+          s3Key,
         };
 
         await invalidateDocuments(userId);
 
         await sendMessage(process.env.DOCUMENT_INGEST_QUEUE_URL!, message);
+
+        logger.info("Sending ingestion message", message);
 
         return res.status(202).json({
           documentId,
@@ -144,6 +131,9 @@ export const uploadDocument: RequestHandler = asyncHandler(
   },
 );
 
+/**
+ * GET /documents/:id/status
+ */
 export const getDocumentStatus: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user || !req.user.id) {
@@ -154,12 +144,15 @@ export const getDocumentStatus: RequestHandler = asyncHandler(
     const { documentId } = req.params;
     const userId = req.user.id;
 
-    const cached = await getCachedDocumentStatus(userId);
+    const cached = await getCachedDocumentStatus(documentId!);
     const plan = await getUserPlan(userId);
 
     if (cached) {
       logCacheHit("document_status", userId);
-      return res.status(200).json(cached);
+      return res.status(200).json({
+        documentStatus: cached,
+        source: "cache",
+      });
     }
     logCacheMiss("document_status", userId);
 
@@ -187,7 +180,7 @@ export const getDocumentStatus: RequestHandler = asyncHandler(
       const redisStatus = await getJobProgress(job._id.toString());
 
       if (redisStatus) {
-        const response = {
+        const documentStatus = {
           documentId: document._id,
           jobId: job._id,
           documentStatus: document.status,
@@ -195,15 +188,17 @@ export const getDocumentStatus: RequestHandler = asyncHandler(
           stage: redisStatus.stage,
           progress: redisStatus.progress,
           error: redisStatus.error,
-          source: "redis",
         };
 
-        await setCachedDocumentStatus(documentId!, response, plan);
-        return res.status(200).json(response);
+        await setCachedDocumentStatus(documentId!, documentStatus, plan);
+        return res.status(200).json({
+          documentStatus,
+          source: "cache",
+        });
       }
     }
 
-    const response = {
+    const documentStatus = {
       documentId: document._id,
       jobId: job?._id,
       documentStatus: document.status,
@@ -212,8 +207,11 @@ export const getDocumentStatus: RequestHandler = asyncHandler(
     };
 
     // 4. Fallback to MongoDB (authoritative)
-    await setCachedDocumentStatus(documentId!, response, plan);
-    return res.status(200).json(response);
+    await setCachedDocumentStatus(documentId!, documentStatus, plan);
+    return res.status(200).json({
+      documentStatus,
+      source: "mongo",
+    });
   },
 );
 
@@ -230,7 +228,10 @@ export const listDocuments: RequestHandler = asyncHandler(
 
     if (cached) {
       logCacheHit("documents", userId);
-      return res.status(200).json(cached);
+      return res.status(200).json({
+        documents: cached,
+        source: "cache",
+      });
     }
     logCacheMiss("documents", userId);
 
@@ -282,8 +283,50 @@ export const listDocuments: RequestHandler = asyncHandler(
       };
     });
 
-    await setCachedDocuments(userId, { documents: response }, plan);
-    return res.status(200).json({ documents: response });
+    await setCachedDocuments(userId, response, plan);
+    return res.status(200).json({ documents: response, source: "mongo" });
+  },
+);
+
+/**
+ * GET /documents/chunks/:chunkId
+ */
+export const getDocumentChunk: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { chunkId } = req.params;
+
+    const chunk = await DocumentChunk.findById(chunkId).select({
+      documentId: 1,
+      chunkIndex: 1,
+      metadata: 1,
+    });
+
+    if (!chunk) {
+      return res.status(404).json({ error: "Chunk not found" });
+    }
+
+    // 👇 safely resolve chunk text
+    const content =
+      chunk.metadata?.pageContent ??
+      chunk.metadata?.text ??
+      chunk.metadata?.content ??
+      "";
+
+    if (!content) {
+      return res.status(404).json({
+        error: "Chunk content not available",
+      });
+    }
+
+    return res.status(200).json({
+      content,
+      chunkIndex: chunk.chunkIndex,
+      documentId: chunk.documentId,
+    });
   },
 );
 
@@ -317,7 +360,7 @@ export const deleteDocument: RequestHandler = asyncHandler(
     await document.save();
 
     // 3. Enqueue deletion job
-    await sendMessage(process.env.DELETE_QUEUE_URL!, {
+    await sendMessage(process.env.DOCUMENT_DELETE_QUEUE_URL!, {
       documentId: document._id.toString(),
       userId,
       s3Key: document.s3Key,

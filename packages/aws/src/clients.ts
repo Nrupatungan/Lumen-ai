@@ -10,10 +10,15 @@ export function getS3Client(): S3Client {
   const region = process.env.AWS_REGION;
   const endpoint = process.env.AWS_ENDPOINT;
 
+  if (!region) {
+    throw new Error("AWS region is not set");
+  }
+
   _s3Client = new S3Client({
     region,
     endpoint,
     forcePathStyle: Boolean(endpoint), // ONLY for LocalStack
+    maxAttempts: 3,
   });
 
   return _s3Client;
@@ -28,6 +33,7 @@ export function getSQSClient(): SQSClient {
   _sqsClient = new SQSClient({
     region,
     endpoint,
+    maxAttempts: 3,
   });
 
   return _sqsClient;

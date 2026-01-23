@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { SetStateAction, useState } from "react";
 import {
   AppBar,
@@ -29,6 +29,7 @@ import { getInitials } from "@/utils";
 import { Person, Dashboard, Logout } from "@mui/icons-material";
 import { protectedLinks, publicLinks } from "@/lib/data";
 import { useMe } from "@/hooks/useMe";
+import { queryClient } from "../Providers";
 
 const tierColors = {
   Free: "action.disabledBackground",
@@ -44,7 +45,8 @@ export default function Navbar({
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const { data: user } = useMe(isAuthenticated);
+  const { data: user } = useMe();
+  const router = useRouter();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -150,13 +152,6 @@ export default function Navbar({
                   >
                     {getInitials(user.name)}
                   </Avatar>
-                  <Typography
-                    variant="body2"
-                    fontWeight="medium"
-                    sx={{ display: { xs: "none", sm: "block" } }}
-                  >
-                    {user.name.split(" ")[0]}
-                  </Typography>
                   <Box
                     sx={{
                       display: { xs: "none", sm: "block" },
@@ -210,13 +205,13 @@ export default function Navbar({
                 >
                   <MenuItem
                     component={Link}
-                    href="/dashboard"
+                    href="/billing"
                     onClick={handleCloseUserMenu}
                   >
                     <ListItemIcon>
                       <Dashboard fontSize="small" />
                     </ListItemIcon>
-                    Dashboard
+                    Billing
                   </MenuItem>
                   <MenuItem
                     component={Link}
@@ -247,9 +242,11 @@ export default function Navbar({
                   )}
                   <Divider />
                   <MenuItem
-                    onClick={() => {
+                    onClick={async () => {
                       handleCloseUserMenu();
-                      (async () => signOutAction())();
+                      await signOutAction();
+                      queryClient.removeQueries({ queryKey: ["me"] });
+                      router.push("/");
                     }}
                     sx={{ color: "error.main" }}
                   >

@@ -1,22 +1,20 @@
 import "dotenv/config";
 
 import {
-  receiveMessages,
   deleteMessage,
+  receiveMessages,
   startVisibilityExtender,
 } from "@repo/aws";
 import { handler } from "./handler.js";
 import { logger } from "@repo/observability";
 import { SQSRecord } from "aws-lambda";
-import { setupGracefulShutdown, isShuttingDown } from "../utils/shutdown.js";
+import { isShuttingDown, setupGracefulShutdown } from "../utils/shutdown.js";
 
-const QUEUE_URL = process.env.DELETE_QUEUE_URL!;
-const POLL_INTERVAL_MS = 1000;
-const VISIBILITY_TIMEOUT = 600; // 5 minutes
+const QUEUE_URL = String(process.env.TEXT_EXTRACT_QUEUE_URL);
+const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS);
+const VISIBILITY_TIMEOUT = Number(process.env.VISIBILITY_TIMEOUT);
+const AWS_REGION = String(process.env.AWS_REGION);
 
-/**
- * Convert SQS SDK message → Lambda-compatible SQSRecord
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toSqsRecord(message: any): SQSRecord {
   const now = Date.now().toString();
@@ -34,8 +32,8 @@ function toSqsRecord(message: any): SQSRecord {
     messageAttributes: {},
     md5OfBody: "",
     eventSource: "aws:sqs",
-    eventSourceARN: "arn:aws:sqs:us-east-1:000000000000:document-delete",
-    awsRegion: "us-east-1",
+    eventSourceARN: String(process.env.TEXT_EXTRACT_QUEUE_ARN),
+    awsRegion: AWS_REGION,
   };
 }
 
@@ -43,36 +41,31 @@ async function pollOnce() {
   const messages = await receiveMessages(QUEUE_URL, {
     maxMessages: 5,
     waitTimeSeconds: 20,
-    visibilityTimeout: 300,
+    visibilityTimeout: VISIBILITY_TIMEOUT,
   });
 
   if (!messages.length) return;
 
-  logger.info(`[document-delete] received ${messages.length} messages`);
+  logger.info(`[worker] received ${messages.length} messages`);
 
-  await handler({
-    Records: messages.map(toSqsRecord),
-  });
+  // 🔐 Extend visibility for entire batch
+  const extenders = messages.map((msg) =>
+    startVisibilityExtender(QUEUE_URL, msg.ReceiptHandle!, VISIBILITY_TIMEOUT),
+  );
 
-  // IMPORTANT:
-  // Always delete messages.
-  // This worker is idempotent and must never block retries.
-  for (const msg of messages) {
-    const extender = startVisibilityExtender(
-      QUEUE_URL,
-      msg.ReceiptHandle!,
-      VISIBILITY_TIMEOUT,
-    );
+  try {
+    // ✅ SINGLE handler execution
+    await handler({
+      Records: messages.map(toSqsRecord),
+    });
 
-    try {
-      await handler({
-        Records: [toSqsRecord(msg)],
-      });
-
+    // ✅ Delete after successful processing
+    for (const msg of messages) {
       await deleteMessage(QUEUE_URL, msg.ReceiptHandle!);
-    } finally {
-      extender.stop();
     }
+  } finally {
+    // 🔕 Stop all extenders
+    for (const e of extenders) e.stop();
   }
 }
 

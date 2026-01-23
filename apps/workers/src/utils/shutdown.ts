@@ -23,7 +23,7 @@ export function setupGracefulShutdown() {
     logger.info(`[shutdown] received ${signal}, draining workers`);
 
     const start = Date.now();
-    const MAX_WAIT_MS = 25_000; // keep below ECS hard kill
+    const MAX_WAIT_MS = Number(process.env.MAX_WAIT_MS); // keep below ECS hard kill
 
     while (inFlight > 0 && Date.now() - start < MAX_WAIT_MS) {
       await new Promise((r) => setTimeout(r, 500));

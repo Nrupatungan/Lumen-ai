@@ -1,13 +1,11 @@
-// Redis → Mongo usage sync worker
-// Periodically aggregates Redis daily usage counters into Mongo UsageRecord
-
-import { UsageRecord } from "@repo/db";
+import { connectDB, UsageRecord } from "@repo/db";
 import {
-  getCommandRedisClient,
-  invalidateUsage,
-  invalidateUsageDashboard,
-} from "@repo/cache";
+  getRestRedisClient,
+  invalidateUsageRest,
+  invalidateUsageDashboardRest,
+} from "@repo/cache/rest";
 import { logger } from "@repo/observability";
+import { loadConfig } from "../utils/cachedConfig.js";
 
 // Redis key pattern: usage:{userId}:{YYYY-MM-DD}
 const USAGE_KEY_PATTERN = "usage:*";
@@ -29,7 +27,10 @@ function parseUsageKey(key: string): ParsedUsageKey | null {
 }
 
 export async function handler() {
-  const redis = getCommandRedisClient();
+  const { MONGO_URI, URL, TOKEN } = await loadConfig();
+
+  await connectDB(MONGO_URI, process.env.MONGO_DB_NAME!);
+  const restRedis = getRestRedisClient(URL, TOKEN);
 
   logger.info("[usage-sync] starting Redis → Mongo sync");
 
@@ -37,13 +38,10 @@ export async function handler() {
 
   try {
     do {
-      const [nextCursor, keys] = await redis.scan(
-        cursor,
-        "MATCH",
-        USAGE_KEY_PATTERN,
-        "COUNT",
-        100,
-      );
+      const [nextCursor, keys] = (await restRedis.scan(cursor, {
+        match: USAGE_KEY_PATTERN,
+        count: 100,
+      })) as [string, string[]];
 
       cursor = nextCursor;
 
@@ -53,7 +51,7 @@ export async function handler() {
 
         const { userId, date } = parsed;
 
-        const data = await redis.hgetall(key);
+        const data = await restRedis.hgetall(key);
 
         if (!data || Object.keys(data).length === 0) continue;
 
@@ -77,9 +75,9 @@ export async function handler() {
         );
 
         // Optional: delete Redis key after successful sync
-        await redis.del(key);
-        await invalidateUsage(userId);
-        await invalidateUsageDashboard(userId);
+        await restRedis.del(key);
+        await invalidateUsageRest(userId, URL, TOKEN);
+        await invalidateUsageDashboardRest(userId, URL, TOKEN);
       }
     } while (cursor !== "0");
 

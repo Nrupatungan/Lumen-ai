@@ -1,21 +1,20 @@
 import { Redis } from "ioredis";
 
+const REDIS_URL = String(process.env.REDIS_URL);
 let redis: Redis | null = null;
 
 export function getCommandRedisClient(): Redis {
   if (!redis) {
-    redis = new Redis({
-      host: process.env.REDIS_HOST,
-      port: Number(process.env.REDIS_PORT),
+    redis = new Redis(REDIS_URL, {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
     });
 
     redis.on("connect", () => {
-      console.log("[Redis] connected");
+      console.log("[Redis] connected (tcp)");
     });
 
-    redis.on("error", (err) => {
+    redis.on("error", (err: Error) => {
       console.error("[Redis] error", err);
     });
   }
@@ -27,14 +26,13 @@ export function getCommandRedisClient(): Redis {
  * Key helpers
  * ------------------------------------------------- */
 
-export const redisKeys = {
+export const ingestionRedisKeys = {
   jobStatus: (jobId: string) => `job:${jobId}:status`,
   jobStage: (jobId: string) => `job:${jobId}:stage`,
   jobProgress: (jobId: string) => `job:${jobId}:progress`,
   jobError: (jobId: string) => `job:${jobId}:error`,
-
   documentStatus: (docId: string) => `document:${docId}:status`,
-  documentStage: (docId: string) => `document:${docId}:stage`,
+  documentStage: (docId: string) => `document:stage:${docId}`,
 };
 
 /* -------------------------------------------------
@@ -44,42 +42,45 @@ export const redisKeys = {
 export async function setJobStatus(jobId: string, status: string) {
   const client = getCommandRedisClient();
   try {
-    await client.set(redisKeys.jobStatus(jobId), status);
+    await client.set(ingestionRedisKeys.jobStatus(jobId), status);
   } catch (_) {}
 }
 
 export async function setJobStage(jobId: string, stage: string) {
   const client = getCommandRedisClient();
   try {
-    await client.set(redisKeys.jobStage(jobId), stage);
+    await client.set(ingestionRedisKeys.jobStage(jobId), stage);
   } catch (_) {}
 }
 
 export async function setJobProgress(jobId: string, progress: number) {
   const client = getCommandRedisClient();
   try {
-    await client.set(redisKeys.jobProgress(jobId), progress.toString());
+    await client.set(
+      ingestionRedisKeys.jobProgress(jobId),
+      progress.toString(),
+    );
   } catch (_) {}
 }
 
 export async function setJobError(jobId: string, error: string) {
   const client = getCommandRedisClient();
   try {
-    await client.set(redisKeys.jobError(jobId), error);
+    await client.set(ingestionRedisKeys.jobError(jobId), error);
   } catch (_) {}
 }
 
 export async function setDocumentStatus(docId: string, status: string) {
   const client = getCommandRedisClient();
   try {
-    await client.set(redisKeys.documentStatus(docId), status);
+    await client.set(ingestionRedisKeys.documentStatus(docId), status);
   } catch (_) {}
 }
 
 export async function setDocumentStage(docId: string, stage: string) {
   const client = getCommandRedisClient();
   try {
-    await client.set(redisKeys.documentStage(docId), stage);
+    await client.set(ingestionRedisKeys.documentStage(docId), stage);
   } catch (_) {}
 }
 
@@ -91,10 +92,10 @@ export async function expireJob(jobId: string, ttlSeconds = 60 * 60 * 48) {
   const client = getCommandRedisClient();
   try {
     const keys = [
-      redisKeys.jobStatus(jobId),
-      redisKeys.jobStage(jobId),
-      redisKeys.jobProgress(jobId),
-      redisKeys.jobError(jobId),
+      ingestionRedisKeys.jobStatus(jobId),
+      ingestionRedisKeys.jobStage(jobId),
+      ingestionRedisKeys.jobProgress(jobId),
+      ingestionRedisKeys.jobError(jobId),
     ];
     await Promise.all(keys.map((k) => client.expire(k, ttlSeconds)));
   } catch (_) {}
@@ -108,10 +109,10 @@ export async function getJobProgress(jobId: string) {
   const client = getCommandRedisClient();
   try {
     const [status, stage, progress, error] = await Promise.all([
-      client.get(redisKeys.jobStatus(jobId)),
-      client.get(redisKeys.jobStage(jobId)),
-      client.get(redisKeys.jobProgress(jobId)),
-      client.get(redisKeys.jobError(jobId)),
+      client.get(ingestionRedisKeys.jobStatus(jobId)),
+      client.get(ingestionRedisKeys.jobStage(jobId)),
+      client.get(ingestionRedisKeys.jobProgress(jobId)),
+      client.get(ingestionRedisKeys.jobError(jobId)),
     ]);
 
     if (!status && !stage && !progress) return null;

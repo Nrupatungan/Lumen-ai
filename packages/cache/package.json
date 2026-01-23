@@ -8,6 +8,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./rest": {
+      "types": "./dist/rest/redis_rest.d.ts",
+      "default": "./dist/rest/redis_rest.js"
     }
   },
   "scripts": {
@@ -15,7 +19,7 @@
   },
   "dependencies": {
     "@repo/policy": "workspace:*",
-    "@repo/observability": "workspace:*",
+    "@upstash/redis": "^1.36.1",
     "ioredis": "^5.8.2"
   },
   "devDependencies": {
