@@ -1,3 +1,4 @@
+import { DocumentChunk } from "./document-chunk.model.js";
 import mongoose, { Schema, Document as MDocument, Model } from "mongoose";
 
 export interface IDocument extends MDocument {
@@ -29,6 +30,19 @@ const DocumentSchema = new Schema<IDocument>(
   },
   { timestamps: true },
 );
+
+DocumentSchema.pre("findOneAndDelete", async function () {
+  const filter = this.getFilter();
+
+  const document = await mongoose
+    .model("Document")
+    .findOne(filter)
+    .select("_id");
+
+  if (!document) return;
+
+  await DocumentChunk.deleteMany({ documentId: document._id });
+});
 
 export const DocumentModel: Model<IDocument> =
   mongoose.models.DocumentModel ||

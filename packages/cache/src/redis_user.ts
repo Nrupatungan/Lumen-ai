@@ -1,33 +1,19 @@
 import { getCommandRedisClient } from "./redis_command.js";
-import { CacheType, Plan, CACHE_TTL_BY_PLAN } from "@repo/policy";
+import { Plan } from "@repo/policy/plans";
+import { resolveTTL } from "./utils/resolveTtl.js";
+import { getDashboardVersion } from "./utils/getDashboardVersion.js";
 
-function profileKey(userId: string) {
-  return `user:profile:${userId}`;
-}
-
-function subscriptionKey(userId: string) {
-  return `user:subscription:${userId}`;
-}
-
-function usageKey(userId: string) {
-  return `user:usage:${userId}`;
-}
-
-function docsKey(userId: string) {
-  return `user:documents:${userId}`;
-}
-
-function docStatusKey(docId: string) {
-  return `document:status:${docId}`;
-}
-
-function dashboardKey(userId: string, days: number) {
-  return `user:usage-dashboard:${userId}:${days}`;
-}
-
-function resolveTTL(cacheType: CacheType, plan: Plan | undefined) {
-  return CACHE_TTL_BY_PLAN[cacheType][plan ?? "Free"];
-}
+export const usageRedisKeys = {
+  profileKey: (userId: string) => `user:profile:${userId}`,
+  subscriptionKey: (userId: string) => `user:subscription:${userId}`,
+  usageKey: (userId: string) => `user:usage:${userId}`,
+  docsKey: (userId: string) => `user:documents:${userId}`,
+  docStatusKey: (docId: string) => `document:${docId}:status`,
+  dashboardKey: (userId: string, days: number, version: number) =>
+    `user:usage-dashboard:${userId}:v${version}:${days}`,
+  dashboardVersion: (userId: string) =>
+    `user:usage-dashboard-version:${userId}`,
+};
 
 /* ----------------------------- Profile ----------------------------- */
 
@@ -35,7 +21,7 @@ export async function getCachedUserProfile<T = any>(
   userId: string,
 ): Promise<T | null> {
   const redis = getCommandRedisClient();
-  const cached = await redis.get(profileKey(userId));
+  const cached = await redis.get(usageRedisKeys.profileKey(userId));
   return cached ? (JSON.parse(cached) as T) : null;
 }
 
@@ -47,12 +33,17 @@ export async function setCachedUserProfile(
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("profile", plan);
 
-  await redis.set(profileKey(userId), JSON.stringify(data), "EX", ttl);
+  await redis.set(
+    usageRedisKeys.profileKey(userId),
+    JSON.stringify(data),
+    "EX",
+    ttl,
+  );
 }
 
 export async function invalidateUserProfile(userId: string) {
   const redis = getCommandRedisClient();
-  await redis.del(profileKey(userId));
+  await redis.del(usageRedisKeys.profileKey(userId));
 }
 
 /* -------------------------- Subscription --------------------------- */
@@ -61,7 +52,7 @@ export async function getCachedSubscription<T = any>(
   userId: string,
 ): Promise<T | null> {
   const redis = getCommandRedisClient();
-  const cached = await redis.get(subscriptionKey(userId));
+  const cached = await redis.get(usageRedisKeys.subscriptionKey(userId));
   return cached ? (JSON.parse(cached) as T) : null;
 }
 
@@ -73,12 +64,17 @@ export async function setCachedSubscription(
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("subscription", plan);
 
-  await redis.set(subscriptionKey(userId), JSON.stringify(data), "EX", ttl);
+  await redis.set(
+    usageRedisKeys.subscriptionKey(userId),
+    JSON.stringify(data),
+    "EX",
+    ttl,
+  );
 }
 
 export async function invalidateSubscription(userId: string) {
   const redis = getCommandRedisClient();
-  await redis.del(subscriptionKey(userId));
+  await redis.del(usageRedisKeys.subscriptionKey(userId));
 }
 
 /* ----------------------------- Usage ------------------------------- */
@@ -87,7 +83,7 @@ export async function getCachedUsage<T = any>(
   userId: string,
 ): Promise<T | null> {
   const redis = getCommandRedisClient();
-  const cached = await redis.get(usageKey(userId));
+  const cached = await redis.get(usageRedisKeys.usageKey(userId));
   return cached ? (JSON.parse(cached) as T) : null;
 }
 
@@ -99,12 +95,17 @@ export async function setCachedUsage(
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("usage", plan);
 
-  await redis.set(usageKey(userId), JSON.stringify(data), "EX", ttl);
+  await redis.set(
+    usageRedisKeys.usageKey(userId),
+    JSON.stringify(data),
+    "EX",
+    ttl,
+  );
 }
 
 export async function invalidateUsage(userId: string) {
   const redis = getCommandRedisClient();
-  await redis.del(usageKey(userId));
+  await redis.del(usageRedisKeys.usageKey(userId));
 }
 
 /* ---------------- Usage Dashboard ---------------- */
@@ -113,7 +114,11 @@ export async function getCachedUsageDashboard<T = any>(
   days: number,
 ): Promise<T | null> {
   const redis = getCommandRedisClient();
-  const v = await redis.get(dashboardKey(userId, days));
+
+  const version = await getDashboardVersion(redis, userId);
+  const key = usageRedisKeys.dashboardKey(userId, days, version);
+
+  const v = await redis.get(key);
   return v ? JSON.parse(v) : null;
 }
 
@@ -126,14 +131,15 @@ export async function setCachedUsageDashboard(
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("usage_dashboard", plan);
 
-  await redis.set(dashboardKey(userId, days), JSON.stringify(data), "EX", ttl);
+  const version = await getDashboardVersion(redis, userId);
+  const key = usageRedisKeys.dashboardKey(userId, days, version);
+
+  await redis.set(key, JSON.stringify(data), "EX", ttl);
 }
 
 export async function invalidateUsageDashboard(userId: string) {
   const redis = getCommandRedisClient();
-  const pattern = `user:usage-dashboard:${userId}:*`;
-  const keys = await redis.keys(pattern);
-  if (keys.length) await redis.del(keys);
+  await redis.incr(usageRedisKeys.dashboardVersion(userId));
 }
 
 /* ---------------- Documents List ---------------- */
@@ -142,7 +148,7 @@ export async function getCachedDocuments<T = any>(
   userId: string,
 ): Promise<T | null> {
   const redis = getCommandRedisClient();
-  const v = await redis.get(docsKey(userId));
+  const v = await redis.get(usageRedisKeys.docsKey(userId));
   return v ? JSON.parse(v) : null;
 }
 
@@ -154,12 +160,17 @@ export async function setCachedDocuments(
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("documents", plan);
 
-  await redis.set(docsKey(userId), JSON.stringify(data), "EX", ttl);
+  await redis.set(
+    usageRedisKeys.docsKey(userId),
+    JSON.stringify(data),
+    "EX",
+    ttl,
+  );
 }
 
 export async function invalidateDocuments(userId: string) {
   const redis = getCommandRedisClient();
-  await redis.del(docsKey(userId));
+  await redis.del(usageRedisKeys.docsKey(userId));
 }
 
 /* ---------------- Document Status ---------------- */
@@ -168,7 +179,7 @@ export async function getCachedDocumentStatus<T = any>(
   documentId: string,
 ): Promise<T | null> {
   const redis = getCommandRedisClient();
-  const v = await redis.get(docStatusKey(documentId));
+  const v = await redis.get(usageRedisKeys.docStatusKey(documentId));
   return v ? JSON.parse(v) : null;
 }
 
@@ -180,12 +191,17 @@ export async function setCachedDocumentStatus(
   const redis = getCommandRedisClient();
   const ttl = resolveTTL("document_status", plan);
 
-  await redis.set(docStatusKey(documentId), JSON.stringify(data), "EX", ttl);
+  await redis.set(
+    usageRedisKeys.docStatusKey(documentId),
+    JSON.stringify(data),
+    "EX",
+    ttl,
+  );
 }
 
 export async function invalidateDocumentStatus(documentId: string) {
   const redis = getCommandRedisClient();
-  await redis.del(docStatusKey(documentId));
+  await redis.del(usageRedisKeys.docStatusKey(documentId));
 }
 
 /* ----------------------------- Cleanup ------------------------------ */
@@ -194,14 +210,12 @@ export async function invalidateAllUserCaches(userId: string) {
   const redis = getCommandRedisClient();
 
   await redis.del(
-    profileKey(userId),
-    subscriptionKey(userId),
-    usageKey(userId),
-    docsKey(userId),
+    usageRedisKeys.profileKey(userId),
+    usageRedisKeys.subscriptionKey(userId),
+    usageRedisKeys.usageKey(userId),
+    usageRedisKeys.docsKey(userId),
   );
 
-  const dashboardKeys = await redis.keys(`user:usage-dashboard:${userId}:*`);
-  if (dashboardKeys.length) {
-    await redis.del(dashboardKeys);
-  }
+  // invalidate dashboard safely
+  await redis.incr(usageRedisKeys.dashboardVersion(userId));
 }

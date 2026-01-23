@@ -1,3 +1,5 @@
+import { DocumentSourceType } from "@repo/policy/plans";
+
 export interface BaseMessage {
   jobId: string;
   documentId: string;
@@ -5,12 +7,13 @@ export interface BaseMessage {
 }
 
 export interface DocumentIngestMessage extends BaseMessage {
-  sourceType: "pdf" | "docx" | "md" | "txt" | "epub" | "pptx" | "image";
+  sourceType: DocumentSourceType;
   s3Key: string;
 }
 
 export interface TextExtractMessage extends BaseMessage {
   s3Key: string;
+  sourceType: Omit<DocumentSourceType, "image" | "url">;
 }
 
 export interface OCRMessage extends BaseMessage {

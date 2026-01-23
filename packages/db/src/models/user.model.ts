@@ -1,5 +1,14 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document, Model, QueryFilter } from "mongoose";
 import bcrypt from "bcrypt";
+import { Subscription } from "./subscription.model.js";
+import { Payment } from "./payment.model.js";
+import { DocumentModel } from "./document.model.js";
+import { Account } from "./account.model.js";
+import { Conversation } from "./conversation.model.js";
+import { IngestionJob } from "./ingestion-job.model.js";
+import { UsageRecord } from "./usageRecord.model.js";
+import { VerificationToken } from "./verificationToken.model.js";
+import { PasswordResetToken } from "./passwordRestToken.model.js";
 
 export interface IUser extends Document {
   name?: string;
@@ -42,6 +51,41 @@ UserSchema.methods.comparePassword = function (password: string) {
   if (!this.password) return Promise.resolve(false);
   return bcrypt.compare(password, this.password);
 };
+
+UserSchema.pre("findOneAndDelete", async function () {
+  const filter = this.getFilter() as QueryFilter<IUser>;
+  const user = await mongoose
+    .model<IUser>("User")
+    .findOne(filter)
+    .select("_id");
+
+  if (!user) return;
+
+  const userId = user._id;
+
+  const [conversations, documents] = await Promise.all([
+    Conversation.find({ userId }).select("_id"),
+    DocumentModel.find({ userId }).select("_id"),
+  ]);
+
+  await Promise.allSettled([
+    // TODO: Protect against massive fan-out
+    //     for (const c of conversations) {
+    //   await Conversation.findByIdAndDelete(c._id);
+    // }
+    // Or push IDs to a background worker.
+
+    ...conversations.map((c) => Conversation.findByIdAndDelete(c._id)),
+    ...documents.map((d) => DocumentModel.findByIdAndDelete(d._id)),
+    Subscription.deleteOne({ userId }),
+    Payment.deleteMany({ userId }),
+    Account.deleteMany({ userId }),
+    IngestionJob.deleteMany({ userId }),
+    UsageRecord.deleteOne({ userId }),
+    PasswordResetToken.deleteOne({ userId }),
+    VerificationToken.deleteOne({ userId }),
+  ]);
+});
 
 export const User: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);

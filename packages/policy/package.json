@@ -5,9 +5,13 @@
   "private": true,
   "main": "dist/index.js",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+    "./plans": {
+      "types": "./dist/plans/index.d.ts",
+      "default": "./dist/plans/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
     }
   },
   "scripts": {

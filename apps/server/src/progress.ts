@@ -6,7 +6,8 @@ import { WebSocketServer, WebSocket } from "ws";
 import { subscribe, pubSubChannels } from "@repo/cache";
 import { IngestionJob } from "@repo/db";
 import { logger } from "@repo/observability";
-import { authenticateWebSocket } from "./utils/webSocketauth.js";
+import jwt from "jsonwebtoken";
+import { UserPayload } from "./middlewares/jwt-verify.middleware.js";
 
 interface ClientContext {
   userId: string;
@@ -21,16 +22,46 @@ export function initProgressWebSocket(server: HTTPServer) {
   });
 
   wss.on("connection", (socket: WebSocket, req) => {
-    const authorizedUser = authenticateWebSocket(req)?.user;
+    const heartbeat = setInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.ping();
+      }
+    }, 30_000);
 
-    if (!authorizedUser || !authorizedUser.id) {
-      logger.warn("WS unauthorized connection rejected");
-      socket.close(1008, "Unauthorized"); // Policy Violation
+    const url = new URL(req.url!, "http://localhost");
+
+    const tokenFromQuery = url.searchParams.get("token");
+
+    if (!tokenFromQuery) {
+      logger.warn("WS missing token");
+      socket.close(1008, "Unauthorized");
+      return;
+    }
+
+    let user: UserPayload;
+
+    try {
+      if (!process.env.AUTH_SECRET) {
+        throw new Error("Missing AUTH_SECRET");
+      }
+
+      const decoded = jwt.verify(tokenFromQuery, process.env.AUTH_SECRET!, {
+        audience: "websocket",
+        issuer: "lumen-api",
+      }) as jwt.JwtPayload;
+
+      user = {
+        id: decoded.sub as string,
+        role: decoded.role,
+      };
+    } catch {
+      logger.warn("WS invalid or expired token");
+      socket.close(1008, "Invalid token");
       return;
     }
 
     const context: ClientContext = {
-      userId: authorizedUser.id,
+      userId: user.id,
     };
 
     socket.on("message", async (raw) => {
@@ -43,21 +74,22 @@ export function initProgressWebSocket(server: HTTPServer) {
          */
         if (msg.action === "subscribe" && msg.jobId) {
           // Clean up previous subscription if any
-          if (context.unsubscribe) {
-            await context.unsubscribe();
-            context.unsubscribe = undefined;
+          const prevUnsub = context.unsubscribe;
+          context.unsubscribe = undefined;
+
+          if (prevUnsub) {
+            await prevUnsub();
           }
 
           context.jobId = msg.jobId;
 
           // Verify job ownership before subscribing
-          const job = await IngestionJob.findOne({ _id: msg.jobId }).lean();
+          const job = await IngestionJob.findOne({
+            _id: msg.jobId,
+            userId: context.userId,
+          }).lean();
 
-          if (!job || job.userId.toString() !== context.userId) {
-            logger.warn("WS job ownership violation", {
-              jobId: msg.jobId,
-              userId: context.userId,
-            });
+          if (!job) {
             socket.send(JSON.stringify({ error: "Forbidden" }));
             return;
           }
@@ -87,9 +119,14 @@ export function initProgressWebSocket(server: HTTPServer) {
         if (context.unsubscribe) {
           await context.unsubscribe();
         }
+        clearInterval(heartbeat);
       } catch {
         // intentionally ignored
       }
+    });
+
+    socket.on("error", (err) => {
+      logger.warn("WS socket error", { err });
     });
   });
 

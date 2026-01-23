@@ -1,5 +1,5 @@
 // React hook for subscribing to ingestion job progress via WebSocket
-
+import { apiClient } from "@/lib/apiClient";
 import { useEffect, useRef, useState } from "react";
 
 export interface JobProgressEvent {
@@ -7,6 +7,7 @@ export interface JobProgressEvent {
   stage?: string;
   progress?: number;
   error?: string;
+  done?: boolean;
 }
 
 interface UseJobProgressOptions {
@@ -19,48 +20,73 @@ export function useJobProgress({
   enabled = true,
 }: UseJobProgressOptions) {
   const socketRef = useRef<WebSocket | null>(null);
+  const subscribedJobRef = useRef<string | null>(null);
+
   const [data, setData] = useState<JobProgressEvent | null>(null);
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    if (!jobId || !enabled) return;
+    if (!jobId || !enabled) {
+      socketRef.current?.close();
+      socketRef.current = null;
+      subscribedJobRef.current = null;
+      setData(null);
+      return;
+    }
 
-    const wsUrl = `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/ws/progress`;
+    if (subscribedJobRef.current === jobId) return;
 
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
+    subscribedJobRef.current = jobId;
 
-    socket.onopen = () => {
-      setConnected(true);
+    let cancelled = false;
 
-      socket.send(
-        JSON.stringify({
-          action: "subscribe",
-          jobId,
-        }),
+    async function connect() {
+      const token = await apiClient.getWsToken();
+      if (!token || cancelled) return;
+
+      const socket = new WebSocket(
+        `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/ws/progress?token=${encodeURIComponent(token)}`,
       );
-    };
 
-    socket.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        setData(payload);
-      } catch {
-        // intentionally ignored
-      }
-    };
+      socketRef.current = socket;
 
-    socket.onerror = () => {
-      setConnected(false);
-    };
+      socket.onopen = () => {
+        if (cancelled) return;
+        setConnected(true);
+        socket.send(JSON.stringify({ action: "subscribe", jobId }));
+      };
 
-    socket.onclose = () => {
-      setConnected(false);
-    };
+      socket.onmessage = (event) => {
+        try {
+          const payload: JobProgressEvent = JSON.parse(event.data);
+          setData(payload);
+
+          if (payload.done || payload.progress === 100) {
+            socket.close();
+          }
+        } catch {
+          //
+        }
+      };
+
+      socket.onclose = () => {
+        socketRef.current = null;
+        subscribedJobRef.current = null;
+        setConnected(false);
+      };
+
+      socket.onerror = () => {
+        socket.close();
+      };
+    }
+
+    connect();
 
     return () => {
-      socket.close();
+      cancelled = true;
+      socketRef.current?.close();
       socketRef.current = null;
+      subscribedJobRef.current = null;
     };
   }, [jobId, enabled]);
 

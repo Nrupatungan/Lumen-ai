@@ -80,6 +80,7 @@ export const testimonials = [
 export const protectedLinks = [
   { label: "Chat", href: "/chat" },
   { label: "Dashboard", href: "/dashboard" },
+  { label: "Documents", href: "/documents" },
 ];
 
 export const publicLinks = [
@@ -179,3 +180,27 @@ export const pricingTiers = [
     popular: false,
   },
 ] as const;
+
+export const footerLinks = {
+  product: [
+    { label: "Features", href: "/#features" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "API Docs", href: "/docs" },
+  ],
+  company: [
+    { label: "About", href: "/about" },
+    { label: "Blog", href: "/blog" },
+    { label: "Contact", href: "/contact" },
+  ],
+  legal: [
+    { label: "Privacy", href: "/privacy" },
+    { label: "Terms", href: "/terms" },
+  ],
+};
+
+export const suggestedPrompts = [
+  "What are the main topics covered in my documents?",
+  "Summarize the key points from the most recent upload",
+  "Find information about a specific topic",
+  "Compare concepts across my documents",
+];

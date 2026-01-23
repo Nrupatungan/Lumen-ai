@@ -13,7 +13,6 @@ import {
   Stack,
   TextField,
   Typography,
-  Alert,
   Theme,
 } from "@mui/material";
 import { useForm } from "react-hook-form";
@@ -26,16 +25,17 @@ import { signInAction } from "@/actions/sign-in-action";
 import { OAuthLogin } from "@/actions/oauth-action";
 import { AppLogoIcon } from "../CustomIcon";
 import { GitHub, Google } from "@mui/icons-material";
+import { useToast } from "@/hooks/useToast";
 
 export function SignInForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setError,
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
@@ -46,8 +46,17 @@ export function SignInForm() {
     setLoading(false);
 
     if (!res.success) {
-      setError("root", { message: res.error });
+      toast({
+        title: "Sign in Failed",
+        severity: "error",
+        description: res.error,
+      });
     } else {
+      toast({
+        title: "Sign in Success",
+        severity: "success",
+        description: res.message,
+      });
       setTimeout(() => router.push("/chat"), 2000);
     }
   }
@@ -135,10 +144,6 @@ export function SignInForm() {
 
           <CardContent>
             <Stack spacing={3}>
-              {errors.root && (
-                <Alert severity="error">{errors.root.message}</Alert>
-              )}
-
               {/* OAuth */}
               <Grid container spacing={2}>
                 <Grid size={{ xs: 6 }}>

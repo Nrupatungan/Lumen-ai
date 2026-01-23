@@ -1,6 +1,6 @@
 import { PineconeStore } from "@langchain/pinecone";
 import { OpenAIEmbeddings, ChatOpenAI } from "@langchain/openai";
-import { PLAN_POLICY } from "@repo/policy";
+import { PLAN_POLICY } from "@repo/policy/plans";
 import { pineconeClient } from "./client.js";
 
 /**
@@ -11,7 +11,7 @@ export function createRagClients(plan: keyof typeof PLAN_POLICY) {
   const pineconeIndex = pineconeClient.index(policy.embeddings.index!);
 
   const embeddings = new OpenAIEmbeddings({
-    apiKey: process.env.OPENAI_API_KEY!,
+    apiKey: String(process.env.OPENAI_API_KEY),
     model: policy.embeddings.model,
   });
 
@@ -20,7 +20,7 @@ export function createRagClients(plan: keyof typeof PLAN_POLICY) {
   });
 
   const chatModel = new ChatOpenAI({
-    apiKey: process.env.OPENAI_API_KEY!,
+    apiKey: String(process.env.OPENAI_API_KEY),
     modelName: policy.chat.model,
     temperature: 0.2,
   });

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticateJWT } from "../middlewares/jwt-verify.middleware.js";
 import {
   deleteDocument,
+  getDocumentChunk,
   getDocumentStatus,
   listDocuments,
   uploadDocument,
@@ -11,9 +12,10 @@ const router: Router = Router();
 
 router.use(authenticateJWT);
 
-router.post("/", uploadDocument);
+router.post("/upload", uploadDocument);
+router.get("/chunks/:chunkId", getDocumentChunk);
 router.get("/", listDocuments);
-router.get("/:id/status", getDocumentStatus);
-router.delete("/:id", deleteDocument);
+router.get("/:documentId/status", getDocumentStatus);
+router.delete("/:documentId", deleteDocument);
 
 export default router;

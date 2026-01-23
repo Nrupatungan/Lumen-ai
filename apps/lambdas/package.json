@@ -9,6 +9,8 @@
     "build": "tsup",
     "build:ingestion-router": "tsup src/ingestion-router/handler.ts --out-dir dist/ingestion-router",
     "build:usage-sync": "tsup src/usage-sync/handler.ts --out-dir dist/usage-sync",
+    "worker:ingestion-router": "tsx src/ingestion-router/runLocal.ts",
+    "worker:usage-sync": "tsx src/usage-sync/runLocal.ts",
     "lint": "eslint --max-warnings 0",
     "lint:fix": "eslint --fix",
     "check-types": "tsc --noEmit"
@@ -21,6 +23,7 @@
     "tsup": "^8.5.1"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.974.0",
     "@repo/aws": "workspace:*",
     "@repo/cache": "workspace:*",
     "@repo/db": "workspace:*",

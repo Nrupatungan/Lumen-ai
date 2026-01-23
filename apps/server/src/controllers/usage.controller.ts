@@ -12,7 +12,8 @@ import {
   setCachedUsage,
   setCachedUsageDashboard,
 } from "@repo/cache";
-import { getUserPlan, Plan } from "@repo/policy";
+import { Plan } from "@repo/policy/plans";
+import { getUserPlan } from "@repo/policy/utils";
 /**
  * GET /usage/dashboard
  *
@@ -39,7 +40,10 @@ export const getUsageDashboard: RequestHandler = asyncHandler(
 
     if (cached) {
       logCacheHit("usage_dashboard", userId);
-      return res.json(cached);
+      return res.json({
+        data: cached,
+        source: "cache",
+      });
     }
     logCacheMiss("usage_dashboard", userId);
 
@@ -94,7 +98,7 @@ export const getUsageDashboard: RequestHandler = asyncHandler(
 
     logger.info(`Fetched usage dashboard for user ${userId} for ${days} days`);
     await setCachedUsageDashboard(userId, days, response, plan);
-    return res.status(200).json(response);
+    return res.status(200).json({ data: response, source: "mongo" });
   },
 );
 
@@ -115,7 +119,7 @@ export const getMyUsage: RequestHandler = asyncHandler(
     const cached = await getCachedUsage(userId);
     if (cached) {
       logCacheHit("usage", userId);
-      return res.status(200).json(cached);
+      return res.status(200).json({ usage: cached, source: "cache" });
     }
 
     logCacheMiss("usage", userId);
@@ -129,6 +133,6 @@ export const getMyUsage: RequestHandler = asyncHandler(
     await setCachedUsage(userId, usage, plan);
 
     logger.info(`Fetched usage summary for user ${userId}`);
-    return res.status(200).json(usage);
+    return res.status(200).json({ usage, source: "mongo" });
   },
 );

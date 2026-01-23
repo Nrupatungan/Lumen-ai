@@ -29,7 +29,8 @@ export const PLAN_POLICY = {
     },
     embeddings: {
       model: "text-embedding-3-small",
-      index: process.env.PINECONE_INDEX_SMALL!,
+      index: "free-tier",
+      expectedDimensions: 1536,
     },
     ingestion: {
       ocr: false,
@@ -61,7 +62,8 @@ export const PLAN_POLICY = {
     },
     embeddings: {
       model: "text-embedding-3-large",
-      index: process.env.PINECONE_INDEX_LARGE!,
+      index: "paid-tier",
+      expectedDimensions: 3072,
     },
     ingestion: {
       ocr: false,
@@ -94,7 +96,8 @@ export const PLAN_POLICY = {
     },
     embeddings: {
       model: "text-embedding-3-large",
-      index: process.env.PINECONE_INDEX_LARGE!,
+      index: "paid-tier",
+      expectedDimensions: 3072,
     },
     ingestion: {
       ocr: true,

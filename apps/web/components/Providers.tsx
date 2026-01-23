@@ -7,7 +7,7 @@ import { Provider as ReduxProvider } from "react-redux";
 import { CssBaseline } from "@mui/material";
 import { store } from "@/store";
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60 * 1000,

@@ -13,26 +13,10 @@ import {
 } from "@mui/material";
 import { AppLogoIcon } from "../CustomIcon";
 import { X, GitHub, LinkedIn } from "@mui/icons-material";
+import { footerLinks } from "@/lib/data";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-
-  const footerLinks = {
-    product: [
-      { label: "Features", href: "/#features" },
-      { label: "Pricing", href: "/pricing" },
-      { label: "API Docs", href: "/docs" },
-    ],
-    company: [
-      { label: "About", href: "/about" },
-      { label: "Blog", href: "/blog" },
-      { label: "Contact", href: "/contact" },
-    ],
-    legal: [
-      { label: "Privacy", href: "/privacy" },
-      { label: "Terms", href: "/terms" },
-    ],
-  };
 
   return (
     <Box

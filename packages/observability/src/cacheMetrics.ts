@@ -1,12 +1,5 @@
 import { logger } from "./logger.js";
-
-export type CacheType =
-  | "profile"
-  | "subscription"
-  | "usage"
-  | "usage_dashboard"
-  | "documents"
-  | "document_status";
+import { CacheType } from "@repo/policy/plans";
 
 export function logCacheHit(type: CacheType, userId: string) {
   logger.info("cache.hit", {

@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { logger } from "@repo/observability";
 
-type UserPayload = {
+export type UserPayload = {
   id: string;
   role: "admin" | "user";
 };

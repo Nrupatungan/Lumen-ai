@@ -6,7 +6,6 @@ import {
   Stack,
   TextField,
   Typography,
-  Alert,
   CircularProgress,
   Link,
 } from "@mui/material";
@@ -19,16 +18,16 @@ import { OAuthLogin } from "@/actions/oauth-action";
 import { apiClient } from "@/lib/apiClient";
 import NextLink from "next/link";
 import { GitHub, Google } from "@mui/icons-material";
+import { useToast } from "@/hooks/useToast";
 
 export function SignUpForm() {
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState("");
+  const { toast } = useToast();
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitSuccessful },
-    setError,
+    formState: { errors },
   } = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
   });
@@ -58,17 +57,27 @@ export function SignUpForm() {
       switch (res.status) {
         case 409:
         case 401:
-          setError("root", {
-            message: res.data.message || "Invalid registration data",
+          toast({
+            title: "Sign up Failed",
+            severity: "error",
+            description: res.data.message || "Invalid registration data",
           });
           break;
         case 201:
-          setSuccess(res.data.message);
+          toast({
+            title: "Sign up Success",
+            severity: "success",
+            description: res.data.message,
+          });
           break;
       }
     } catch (err) {
-      setError("root", {
-        message: err ? (err as string) : "Something went wrong.",
+      console.error(err);
+
+      toast({
+        title: "Sign up",
+        severity: "error",
+        description: err ? (err as string) : "Something went wrong.",
       });
     } finally {
       setLoading(false);
@@ -78,9 +87,6 @@ export function SignUpForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <Stack spacing={3}>
-        {errors.root && <Alert severity="error">{errors.root.message}</Alert>}
-        {isSubmitSuccessful && <Alert severity="success">{success}</Alert>}
-
         <TextField
           label="Name"
           size="small"
