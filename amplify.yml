@@ -1,34 +1,30 @@
 version: 1
 
-applications:
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            # Use correct Node version
-            - nvm install 18
-            - nvm use 18
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - nvm install 18
+        - nvm use 18
 
-            # Enable pnpm via corepack (matches packageManager field)
-            - corepack enable
-            - corepack prepare pnpm@10.28.1 --activate
+        - corepack enable
+        - corepack prepare pnpm@10.28.1 --activate
 
-            # Install all workspace deps from repo root
-            - pnpm install --frozen-lockfile
+        # install from repo root
+        - pnpm install --frozen-lockfile
 
-        build:
-          commands:
-            # Build only web + its workspace deps
-            - pnpm --filter web build
+    build:
+      commands:
+        # build only the web app
+        - pnpm --filter web build
 
-      artifacts:
-        baseDirectory: .next
-        files:
-          - "**/*"
+  artifacts:
+    baseDirectory: apps/web/.next
+    files:
+      - "**/*"
 
-      cache:
-        paths:
-          - node_modules/**/*
-          - .pnpm-store/**/*
-          - ../../node_modules/**/*
-          - .turbo/**
+  cache:
+    paths:
+      - node_modules/**/*
+      - .pnpm-store/**/*
+      - .turbo/**
