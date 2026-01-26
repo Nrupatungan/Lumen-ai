@@ -7,8 +7,8 @@ applications:
       phases:
         preBuild:
           commands:
-            - nvm install 18
-            - nvm use 18
+            - nvm install 24
+            - nvm use 24
 
             - corepack enable
             - corepack prepare pnpm@10.28.1 --activate
