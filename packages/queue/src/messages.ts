@@ -1,4 +1,4 @@
-import { DocumentSourceType } from "@repo/policy/plans";
+import { DocumentSourceType } from "@repo/policy-node";
 
 export interface BaseMessage {
   jobId: string;

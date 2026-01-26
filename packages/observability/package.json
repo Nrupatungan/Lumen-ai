@@ -17,7 +17,7 @@
     "@repo/typescript-config": "workspace:*"
   },
   "dependencies": {
-    "@repo/policy": "workspace:*",
+    "@repo/policy-node": "workspace:*",
     "winston": "^3.19.0"
   }
 }

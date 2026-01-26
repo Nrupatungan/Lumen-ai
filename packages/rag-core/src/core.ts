@@ -1,6 +1,6 @@
 import { PineconeStore } from "@langchain/pinecone";
 import { OpenAIEmbeddings, ChatOpenAI } from "@langchain/openai";
-import { PLAN_POLICY } from "@repo/policy/plans";
+import { PLAN_POLICY } from "@repo/policy-node";
 import { pineconeClient } from "./client.js";
 
 /**

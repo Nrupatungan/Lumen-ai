@@ -17,7 +17,7 @@ import {
   registerSchema,
   loginSchema,
   requestPasswordResetSchema,
-} from "@repo/shared";
+} from "@repo/shared-node";
 import {
   oauthLoginSchema,
   resetPasswordSchema,

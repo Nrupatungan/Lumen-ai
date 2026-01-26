@@ -18,8 +18,8 @@ import { DocumentIngestMessage } from "@repo/queue";
 import { sendMessage, uploadStreamToS3 } from "@repo/aws";
 import { PassThrough } from "node:stream";
 import { logCacheHit, logCacheMiss, logger } from "@repo/observability";
-import { getUserPlan } from "@repo/policy/utils";
-import { DocumentSourceType, PLAN_POLICY } from "@repo/policy/plans";
+import { getUserPlan } from "@repo/db";
+import { DocumentSourceType, PLAN_POLICY } from "@repo/policy-node";
 import { resolveSourceType } from "../utils/sourceTypeResolver.js";
 import crypto from "node:crypto";
 

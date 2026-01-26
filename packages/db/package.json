@@ -18,6 +18,7 @@
     "@types/bcrypt": "^6.0.0"
   },
   "dependencies": {
+    "@repo/policy-node": "workspace:*",
     "bcrypt": "^6.0.0",
     "mongoose": "^9.0.1"
   }

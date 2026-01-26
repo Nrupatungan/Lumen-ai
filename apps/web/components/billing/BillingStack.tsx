@@ -14,7 +14,7 @@ import {
 import { Check, CreditCard, Receipt } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import { useBilling } from "@/hooks/useBilling";
-import { PLAN_POLICY } from "@repo/policy/plans";
+import { PLAN_POLICY } from "@repo/policy";
 
 export default function BillingStack() {
   const router = useRouter();

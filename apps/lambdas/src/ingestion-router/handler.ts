@@ -12,8 +12,8 @@ import {
   OCRMessage,
 } from "@repo/queue";
 import { logger } from "@repo/observability";
-import { PLAN_POLICY } from "@repo/policy/plans";
-import { getUserPlan } from "@repo/policy/utils";
+import { PLAN_POLICY } from "@repo/policy-node";
+import { getUserPlan } from "@repo/db";
 import { loadConfig } from "../utils/cachedConfig.js";
 
 const TEXT_EXTRACT_SOURCES = ["pdf", "docx", "pptx", "epub", "md", "txt"];

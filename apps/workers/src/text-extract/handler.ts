@@ -22,7 +22,7 @@ import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { PPTXLoader } from "@langchain/community/document_loaders/fs/pptx";
 import { EPubLoader } from "@langchain/community/document_loaders/fs/epub";
 import { marked } from "marked";
-import { DocumentSourceType } from "@repo/policy/plans";
+import { DocumentSourceType } from "@repo/policy-node";
 
 async function streamToTempFile(stream: Readable, filename: string) {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ingest-"));

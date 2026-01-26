@@ -12,8 +12,8 @@ import {
   setCachedUsage,
   setCachedUsageDashboard,
 } from "@repo/cache";
-import { Plan } from "@repo/policy/plans";
-import { getUserPlan } from "@repo/policy/utils";
+import { Plan } from "@repo/policy-node";
+import { getUserPlan } from "@repo/db";
 /**
  * GET /usage/dashboard
  *

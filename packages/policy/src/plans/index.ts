@@ -1,2 +1,2 @@
-export * from "./plans.policy.js";
-export * from "./cacheTtl.policy.js";
+export * from "./plans.policy";
+export * from "./cacheTtl.policy";

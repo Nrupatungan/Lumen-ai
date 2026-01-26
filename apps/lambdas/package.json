@@ -28,7 +28,7 @@
     "@repo/cache": "workspace:*",
     "@repo/db": "workspace:*",
     "@repo/observability": "workspace:*",
-    "@repo/policy": "workspace:*",
+    "@repo/policy-node": "workspace:*",
     "@repo/queue": "workspace:*",
     "aws-lambda": "^1.0.7",
     "dotenv": "^17.2.3"

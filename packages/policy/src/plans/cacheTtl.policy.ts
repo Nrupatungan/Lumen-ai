@@ -1,4 +1,4 @@
-import { Plan } from "./plans.policy.js";
+import { Plan } from "./plans.policy";
 
 export type CacheType =
   | "profile"
