@@ -1,6 +1,6 @@
 // Redis helpers for fast, best-effort LLM usage tracking
 
-import { getUserPlan } from "@repo/policy/utils";
+import { getUserPlan } from "@repo/db";
 import { getCommandRedisClient } from "./redis_command.js";
 
 export interface UsageIncrement {

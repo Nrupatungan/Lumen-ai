@@ -1,5 +1,5 @@
 import { logger } from "./logger.js";
-import { CacheType } from "@repo/policy/plans";
+import { CacheType } from "@repo/policy-node";
 
 export function logCacheHit(type: CacheType, userId: string) {
   logger.info("cache.hit", {

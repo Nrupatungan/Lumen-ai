@@ -4,7 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Payment, Subscription } from "@repo/db";
 import { getRazorpay } from "../libs/razorpay.js";
 import { logger, logCacheHit, logCacheMiss } from "@repo/observability";
-import { Plan, PLAN_POLICY } from "@repo/policy/plans";
+import { Plan, PLAN_POLICY } from "@repo/policy-node";
 import {
   getCachedPayments,
   getCachedSubscription,
@@ -13,8 +13,8 @@ import {
   setCachedSubscription,
 } from "@repo/cache";
 import z from "zod";
-import { orderSchema, paymentVerificaitonSchema } from "@repo/shared";
-import { getUserPlan } from "@repo/policy/utils";
+import { orderSchema, paymentVerificaitonSchema } from "@repo/shared-node";
+import { getUserPlan } from "@repo/db";
 
 const razorpay = getRazorpay();
 

@@ -3,25 +3,11 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "main": "dist/index.js",
   "exports": {
-    "./plans": {
-      "types": "./dist/plans/index.d.ts",
-      "default": "./dist/plans/index.js"
-    },
-    "./utils": {
-      "types": "./dist/utils/index.d.ts",
-      "default": "./dist/utils/index.js"
-    }
-  },
-  "scripts": {
-    "build": "tsc -p tsconfig.json"
+    ".": "./src/index.ts"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.19.3"
-  },
-  "dependencies": {
-    "@repo/db": "workspace:*"
   }
 }

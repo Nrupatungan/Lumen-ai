@@ -22,6 +22,6 @@
     "@langchain/openai": "^1.2.0",
     "@langchain/pinecone": "^1.0.1",
     "@pinecone-database/pinecone": "^6.1.3",
-    "@repo/policy": "workspace:*"
+    "@repo/policy-node": "workspace:*"
   }
 }

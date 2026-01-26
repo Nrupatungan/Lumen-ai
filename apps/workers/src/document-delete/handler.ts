@@ -3,7 +3,7 @@ import { deleteObject } from "@repo/aws";
 import { connectDB, DocumentModel, IngestionJob } from "@repo/db";
 import { expireJob, invalidateDocuments } from "@repo/cache";
 import { logger } from "@repo/observability";
-import { getUserPlan } from "@repo/policy/utils";
+import { getUserPlan } from "@repo/db";
 import { createRagClients } from "@repo/rag-core";
 
 const URI = String(process.env.MONGO_URI);

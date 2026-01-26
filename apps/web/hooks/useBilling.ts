@@ -1,6 +1,6 @@
 import { api } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
-import { Plan } from "@repo/policy/plans";
+import { Plan } from "@repo/policy";
 
 export type BillingSubscription = {
   plan: Plan;

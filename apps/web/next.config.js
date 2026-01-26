@@ -13,7 +13,11 @@ const nextConfig = {
             pathname: "/**"
         }
     ]
-  }
+  },
+  transpilePackages: [
+    "@repo/policy",
+    "@repo/shared",
+  ],
 };
 
 export default nextConfig;

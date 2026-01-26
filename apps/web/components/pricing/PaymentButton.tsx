@@ -7,7 +7,7 @@ import { Button, Typography } from "@mui/material";
 import { Session } from "next-auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plan } from "@repo/policy/plans";
+import { Plan } from "@repo/policy";
 import { INormalizeError } from "razorpay/dist/types/api";
 import { useMe } from "@/hooks/useMe";
 

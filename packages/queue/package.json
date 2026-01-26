@@ -17,6 +17,6 @@
     "@repo/typescript-config": "workspace:*"
   },
   "dependencies": {
-    "@repo/policy": "workspace:*"
+    "@repo/policy-node": "workspace:*"
   }
 }

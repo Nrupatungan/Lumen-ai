@@ -1,4 +1,4 @@
-import { DocumentSourceType } from "@repo/policy/plans";
+import { DocumentSourceType } from "@repo/policy-node";
 
 export function resolveSourceType(filename: string): DocumentSourceType | null {
   const ext = filename.split(".").pop()?.toLowerCase();

@@ -1,9 +1,4 @@
 {
-  "extends": "@repo/typescript-config/node-lib.json",
-  "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
-  },
-  "include": ["src"],
-  "exclude": ["dist", "node_modules"]
+  "extends": "@repo/typescript-config/frontend-lib.json",
+  "include": ["src"]
 }

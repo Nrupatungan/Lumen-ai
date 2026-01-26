@@ -1,5 +1,5 @@
 import { getCommandRedisClient } from "./redis_command.js";
-import { Plan } from "@repo/policy/plans";
+import { Plan } from "@repo/policy-node";
 import { resolveTTL } from "./utils/resolveTtl.js";
 import { getDashboardVersion } from "./utils/getDashboardVersion.js";
 

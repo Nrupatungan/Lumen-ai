@@ -18,7 +18,8 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@repo/policy": "workspace:*",
+    "@repo/policy-node": "workspace:*",
+    "@repo/db": "workspace:*",
     "@upstash/redis": "^1.36.1",
     "ioredis": "^5.8.2"
   },

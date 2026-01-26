@@ -15,7 +15,7 @@ import {
   invalidateConversations,
 } from "@repo/cache";
 import { createRagClients } from "@repo/rag-core";
-import { getUserPlan } from "@repo/policy/utils";
+import { getUserPlan } from "@repo/db";
 import mongoose from "mongoose";
 import { generateConversationTitle } from "../utils/getConversationTitle.js";
 
