@@ -18,6 +18,7 @@ const nextConfig = {
     "@repo/policy",
     "@repo/shared",
   ],
+  output: "standalone",
 };
 
 export default nextConfig;
