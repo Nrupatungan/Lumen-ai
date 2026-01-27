@@ -1,9 +1,9 @@
-frontend_url = "https://app.lumen.ai"
+frontend_url = "https://lumen-ai-web.vercel.app/"
 whitelist    = [
-  "https://app.lumen.ai",
-  "https://www.app.lumen.ai"
+  "https://lumen-ai-web.vercel.app/",
 ]
 aws_region="eu-north-1"
 project="lumen"
 environment="prod"
 resend_from_email="Lumen AI <onboarding@resend.dev>"
+api_image_tag="f41da0b"

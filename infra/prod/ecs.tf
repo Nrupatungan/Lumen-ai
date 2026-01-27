@@ -4,11 +4,6 @@
 
 resource "aws_ecs_cluster" "main" {
   name = "${var.project}-${var.environment}-cluster"
-
-  setting {
-    name  = "containerInsights"
-    value = "enabled"
-  }
 }
 
 ########################################
@@ -29,7 +24,7 @@ resource "aws_ecs_task_definition" "api" {
   container_definitions = jsonencode([
     {
       name      = "api"
-      image     = aws_ecr_repository.api.repository_url
+      image = "${aws_ecr_repository.api.repository_url}:${var.api_image_tag}"
       essential = true
 
       portMappings = [
@@ -91,10 +86,6 @@ resource "aws_ecs_task_definition" "api" {
           name      = "RAZORPAY_KEY_SECRET"
           valueFrom = data.aws_secretsmanager_secret.razorpay_key_secret.arn 
         },
-        {
-          name      = "RAZORPAY_KEY_SECRET"
-          valueFrom = data.aws_secretsmanager_secret.razorpay_key_secret.arn
-        },
         { 
           name      = "RAZORPAY_KEY_ID"
           valueFrom = data.aws_secretsmanager_secret.razorpay_key_id.arn 
@@ -135,7 +126,7 @@ resource "aws_ecs_task_definition" "worker" {
   container_definitions = jsonencode([
     {
       name      = "worker"
-      image     = aws_ecr_repository.worker.repository_url
+      image = "${aws_ecr_repository.worker.repository_url}:${var.api_image_tag}"
       essential = true
 
       environment = [

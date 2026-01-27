@@ -1,2 +1,2 @@
-import "./config/env";
-import "./server";
+import "./config/env.js";
+import "./server.js";

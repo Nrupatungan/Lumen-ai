@@ -3,7 +3,6 @@ resource "aws_cloudwatch_event_rule" "usage_sync" {
   description         = "Periodically sync usage data"
   schedule_expression = "rate(15 minutes)"
   state               = "ENABLED"
-  depends_on = [ aws_lambda_permission.allow_eventbridge]
 }
 
 resource "aws_cloudwatch_event_target" "usage_sync" {

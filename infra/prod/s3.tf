@@ -18,8 +18,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "documents" {
     id     = "cleanup-temp-uploads"
     status = "Enabled"
 
+    filter {} # 👈 REQUIRED
+
     expiration {
       days = 30
     }
   }
 }
+

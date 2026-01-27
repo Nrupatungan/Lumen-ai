@@ -118,6 +118,11 @@ resource "aws_iam_policy" "ecs_secrets_access" {
         data.aws_secretsmanager_secret.redis_url.arn,
         data.aws_secretsmanager_secret.openai_api_key.arn,
         data.aws_secretsmanager_secret.pinecone_api_key.arn,
+        data.aws_secretsmanager_secret.resend_api_key.arn,
+        data.aws_secretsmanager_secret.razorpay_key_secret.arn,
+        data.aws_secretsmanager_secret.razorpay_key_id.arn,
+        data.aws_secretsmanager_secret.auth_secret.arn,
+        
       ]
     }]
   })
@@ -127,6 +132,12 @@ resource "aws_iam_role_policy_attachment" "ecs_secrets_attach" {
   role       = aws_iam_role.ecs_task.name
   policy_arn = aws_iam_policy.ecs_secrets_access.arn
 }
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_secrets_attach" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = aws_iam_policy.ecs_secrets_access.arn
+}
+
 
 ########################################
 # Lambda Secrets Manager access
@@ -221,4 +232,38 @@ resource "aws_iam_policy" "ecs_logs" {
 resource "aws_iam_role_policy_attachment" "ecs_logs_attach" {
   role       = aws_iam_role.ecs_execution.name
   policy_arn = aws_iam_policy.ecs_logs.arn
+}
+
+resource "aws_ecr_lifecycle_policy" "api" {
+  repository = aws_ecr_repository.api.name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep last 10 images"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 10
+      }
+      action = { type = "expire" }
+    }]
+  })
+}
+
+resource "aws_ecr_lifecycle_policy" "worker" {
+  repository = aws_ecr_repository.worker.name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep last 10 images"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 10
+      }
+      action = { type = "expire" }
+    }]
+  })
 }
