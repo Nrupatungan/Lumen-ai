@@ -9,7 +9,6 @@ resource "aws_lambda_function" "ingestion_router" {
 
   environment {
     variables = {
-      AWS_REGION = var.aws_region
       MONGO_DB_NAME = var.project
       # OCR_EXTRACT_QUEUE_URL
       TEXT_EXTRACT_QUEUE_URL  = aws_sqs_queue.main["text-extract"].url
@@ -37,7 +36,6 @@ resource "aws_lambda_function" "usage_sync" {
 
   environment {
     variables = {
-      AWS_REGION = var.aws_region
       MONGO_DB_NAME = var.project
       MONGO_URI     = "${var.project}/${var.environment}/mongo_uri"
       UPSTASH_REDIS_REST_URL = "${var.project}/${var.environment}/upstash_redis_url"

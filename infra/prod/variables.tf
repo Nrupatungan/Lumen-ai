@@ -27,3 +27,8 @@ variable "resend_from_email" {
   description = "Resend From Email"
   type = string
 }
+
+variable "api_image_tag" {
+  description = "Stores api image tag version"
+  type = string
+}
