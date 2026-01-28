@@ -16,27 +16,61 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      # ----------------------------
-      # Node + pnpm cache
-      # ----------------------------
+      # ------------------------------
+      # Install Node
+      # ------------------------------
+      - name: Setup Node
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: "pnpm"
+          node-version: 24
+          check-latest: true
 
-      - run: corepack enable
-      - run: pnpm install --frozen-lockfile
+      # ------------------------------
+      # Enable pnpm
+      # ------------------------------
+      - name: Enable pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest-10 --activate
+          pnpm --version
 
-      # ----------------------------
-      # Turbo cache
-      # ----------------------------
-      - uses: actions/cache@v4
+      # ------------------------------
+      # Cache pnpm store
+      # ------------------------------
+      - name: Determine pnpm store path
+        id: pnpm-store
+        run: echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      # ------------------------------
+      # pnpm install
+      # ------------------------------
+      - name: Fetch dependencies
+        run: pnpm fetch
+
+      - name: Install dependencies (offline)
+        run: pnpm install --offline --frozen-lockfile
+
+      # ------------------------------
+      # Cache Turbo
+      # ------------------------------
+      - name: Cache Turbo
+        uses: actions/cache@v4
         with:
           path: .turbo
-          key: turbo-${{ github.sha }}
-          restore-keys: turbo-
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
 
       - name: Build workers
         run: pnpm --filter workers build
