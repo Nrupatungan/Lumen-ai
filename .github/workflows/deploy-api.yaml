@@ -125,6 +125,7 @@ jobs:
         working-directory: infra/prod
         env:
           TF_VAR_api_image_tag: ${{ github.sha }}
+          TF_VAR_auth_secret: ${{ secrets.AUTH_SECRET }}
         run: |
           terraform init
           terraform apply -auto-approve
