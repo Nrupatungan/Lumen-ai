@@ -1,0 +1,65 @@
+name: Deploy Lambdas
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/lambdas/**"
+      - "packages/**"
+      - "shell_scripts/package-lambdas.sh"
+
+env:
+  AWS_REGION: eu-north-1
+
+jobs:
+  deploy-lambdas:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ----------------------------
+      # Node + pnpm cache
+      # ----------------------------
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+
+      # ----------------------------
+      # Turbo cache
+      # ----------------------------
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ github.sha }}
+          restore-keys: turbo-
+
+      # ----------------------------
+      # Build lambdas
+      # ----------------------------
+      - name: Build lambdas
+        run: |
+          pnpm --filter lambdas build
+          ./shell_scripts/package-lambdas.sh
+
+      # ----------------------------
+      # AWS
+      # ----------------------------
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      # ----------------------------
+      # Terraform deploy
+      # ----------------------------
+      - name: Terraform apply
+        working-directory: infra/prod
+        run: |
+          terraform init
+          terraform apply -auto-approve

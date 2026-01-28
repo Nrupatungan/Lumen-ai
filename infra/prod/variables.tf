@@ -32,3 +32,8 @@ variable "api_image_tag" {
   description = "Stores api image tag version"
   type = string
 }
+
+variable "auth_secret" {
+  description = "Auth secret"
+  type = string
+}

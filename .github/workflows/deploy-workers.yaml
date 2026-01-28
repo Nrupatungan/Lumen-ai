@@ -1,79 +1,70 @@
-name: Deploy API (ECS)
+name: Deploy Workers (ECS)
 
 on:
   push:
     branches: [main]
     paths:
-      - "apps/server/**"
+      - "apps/workers/**"
       - "packages/**"
-      - "docker/Dockerfile.api"
+      - "docker/Dockerfile.workers"
 
 env:
   AWS_REGION: eu-north-1
 
 jobs:
-  deploy-api:
+  deploy-workers:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       # ----------------------------
       # Node + pnpm cache
       # ----------------------------
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "pnpm"
 
-      - name: Enable pnpm
-        run: corepack enable
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
 
       # ----------------------------
       # Turbo cache
       # ----------------------------
-      - name: Restore turbo cache
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: .turbo
           key: turbo-${{ github.sha }}
           restore-keys: turbo-
 
-      - name: Build API
-        run: pnpm --filter server build
+      - name: Build workers
+        run: pnpm --filter workers build
 
       # ----------------------------
       # AWS + ECR
       # ----------------------------
-      - name: Configure AWS
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - uses: aws-actions/amazon-ecr-login@v2
 
       # ----------------------------
       # Docker build cache
       # ----------------------------
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Build & push API image
+      - name: Build & push workers image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: docker/Dockerfile.api
+          file: docker/Dockerfile.workers
           push: true
           tags: |
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/lumen-prod-api:${{ github.sha }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/lumen-prod-worker:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -91,9 +82,9 @@ jobs:
       # ----------------------------
       # ECS redeploy
       # ----------------------------
-      - name: Redeploy API service
+      - name: Redeploy workers
         run: |
           aws ecs update-service \
             --cluster lumen-prod-cluster \
-            --service lumen-prod-api \
+            --service lumen-prod-worker \
             --force-new-deployment

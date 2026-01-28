@@ -59,6 +59,7 @@ resource "aws_ecs_task_definition" "api" {
 
         # External services (example)
         { name = "MONGO_DB_NAME", value = var.project },
+        { name = "AUTH_SECRET", value = var.auth_secret }
       ]
 
       secrets = [
@@ -90,10 +91,6 @@ resource "aws_ecs_task_definition" "api" {
           name      = "RAZORPAY_KEY_ID"
           valueFrom = data.aws_secretsmanager_secret.razorpay_key_id.arn 
         },
-        { 
-          name      = "AUTH_SECRET"
-          valueFrom = data.aws_secretsmanager_secret.auth_secret.arn 
-        }
       ]
 
       logConfiguration = {
@@ -109,11 +106,74 @@ resource "aws_ecs_task_definition" "api" {
 }
 
 ########################################
-# ECS TASK DEFINITION — WORKER
+# ECS TASK DEFINITION — WORKERS
 ########################################
 
-resource "aws_ecs_task_definition" "worker" {
-  family                   = "${var.project}-${var.environment}-worker"
+resource "aws_ecs_task_definition" "worker_text_extract" {
+  family                   = "${var.project}-${var.environment}-text-extract"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+
+  cpu    = 512
+  memory = 1024
+
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+  task_role_arn      = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name    = "worker"
+      image   = "${aws_ecr_repository.worker.repository_url}:${var.api_image_tag}"
+      command = ["node", "dist/text-extract/runner.js"]
+
+      environment = [
+        { name = "NODE_ENV", value = "production" },
+        { name = "AWS_REGION", value = var.aws_region },
+
+        # SQS
+        { name = "TEXT_EXTRACT_QUEUE_URL", value = aws_sqs_queue.main["text-extract"].url },
+        { name = "TEXT_EXTRACT_QUEUE_ARN", value = aws_sqs_queue.main["text-extract"].arn },
+        { name = "CHUNK_EMBED_QUEUE_ARN", value = aws_sqs_queue.main["chunk-embed"].arn },
+
+        # S3
+        { name = "S3_BUCKET_NAME", value = aws_s3_bucket.documents.bucket },
+
+        # External services
+        { name = "MONGO_DB_NAME", value = var.project },
+
+        # Worker tuning
+        { name = "POLL_INTERVAL_MS", value = "5000" },
+        { name = "VISIBILITY_TIMEOUT", value = "600" },
+        { name = "S3_SIGNED_URL_EXPIRY", value = "43200" },
+        { name = "MAX_WAIT_MS", value = "25000" },
+      ]
+
+      secrets = [
+        { 
+          name = "MONGO_URI"
+          valueFrom = data.aws_secretsmanager_secret.mongo_uri.arn 
+        },
+        { 
+          name = "REDIS_URL"
+          valueFrom = data.aws_secretsmanager_secret.redis_url.arn 
+        },
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.ecs_worker.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "text-extract"
+        }
+      }
+    }
+  ])
+}
+
+resource "aws_ecs_task_definition" "worker_chunk_embed" {
+  family = "${var.project}-${var.environment}-chunk-embed"
+
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
 
@@ -125,33 +185,27 @@ resource "aws_ecs_task_definition" "worker" {
 
   container_definitions = jsonencode([
     {
-      name      = "worker"
-      image = "${aws_ecr_repository.worker.repository_url}:${var.api_image_tag}"
-      essential = true
+      name    = "worker"
+      image   = "${aws_ecr_repository.worker.repository_url}:${var.api_image_tag}"
+      command = ["node", "dist/chunk-embed/runner.js"]
 
       environment = [
         { name = "NODE_ENV", value = "production" },
         { name = "AWS_REGION", value = var.aws_region },
 
-        # SQS
-        { name = "TEXT_EXTRACT_QUEUE_URL", value = aws_sqs_queue.main["text-extract"].url },
         { name = "CHUNK_EMBED_QUEUE_URL", value = aws_sqs_queue.main["chunk-embed"].url },
-        { name = "DELETE_QUEUE_URL", value = aws_sqs_queue.main["document-delete"].url },
         { name = "CHUNK_EMBED_QUEUE_ARN", value = aws_sqs_queue.main["chunk-embed"].arn },
-        { name = "DELETE_QUEUE_ARN", value = aws_sqs_queue.main["document-delete"].arn },
-        { name = "TEXT_EXTRACT_QUEUE_ARN", value = aws_sqs_queue.main["text-extract"].arn },
-
-        # Worker tuning
-        { name = "POLL_INTERVAL_MS", value = "5000" },
-        { name = "VISIBILITY_TIMEOUT", value = "600" },
-        { name = "S3_SIGNED_URL_EXPIRY", value = "43200" },
-        { name = "MAX_WAIT_MS", value = "25000" },
-
+        
         # S3
         { name = "S3_BUCKET_NAME", value = aws_s3_bucket.documents.bucket },
 
         # External services
         { name = "MONGO_DB_NAME", value = var.project },
+
+        # Worker tuning
+        { name = "POLL_INTERVAL_MS", value = "5000" },
+        { name = "VISIBILITY_TIMEOUT", value = "600" },
+        { name = "MAX_WAIT_MS", value = "25000" },
       ]
 
       secrets = [
@@ -178,27 +232,88 @@ resource "aws_ecs_task_definition" "worker" {
         options = {
           awslogs-group         = aws_cloudwatch_log_group.ecs_worker.name
           awslogs-region        = var.aws_region
-          awslogs-stream-prefix = "ecs"
+          awslogs-stream-prefix = "chunk-embed"
         }
       }
     }
   ])
 }
 
-########################################
-# ECS SERVICE — WORKER
-########################################
+resource "aws_ecs_task_definition" "worker_document_delete" {
+  family = "${var.project}-${var.environment}-document-delete"
 
-resource "aws_ecs_service" "worker" {
-  name            = "${var.project}-${var.environment}-worker"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+
+  cpu    = 256
+  memory = 512
+
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+  task_role_arn      = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name    = "worker"
+      image   = "${aws_ecr_repository.worker.repository_url}:${var.api_image_tag}"
+      command = ["node", "dist/document-delete/runner.js"]
+
+      environment = [
+        { name = "NODE_ENV", value = "production" },
+        { name = "AWS_REGION", value = var.aws_region },
+
+        { name = "DELETE_QUEUE_URL", value = aws_sqs_queue.main["document-delete"].url },
+        { name = "DELETE_QUEUE_ARN", value = aws_sqs_queue.main["document-delete"].arn },
+        
+        # S3
+        { name = "S3_BUCKET_NAME", value = aws_s3_bucket.documents.bucket },
+
+        # External services
+        { name = "MONGO_DB_NAME", value = var.project },
+
+        # Worker tuning
+        { name = "POLL_INTERVAL_MS", value = "5000" },
+        { name = "VISIBILITY_TIMEOUT", value = "600" },
+        { name = "MAX_WAIT_MS", value = "25000" },
+      ]
+
+      secrets = [
+        { 
+          name = "MONGO_URI"
+          valueFrom = data.aws_secretsmanager_secret.mongo_uri.arn 
+        },
+        { 
+          name = "OPENAI_API_KEY"
+          valueFrom = data.aws_secretsmanager_secret.openai_api_key.arn 
+        },
+        { 
+          name = "PINECONE_API_KEY"
+          valueFrom = data.aws_secretsmanager_secret.pinecone_api_key.arn 
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.ecs_worker.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "document-delete"
+        }
+      }
+    }
+  ])
+}
+
+
+########################################
+# ECS SERVICE — WORKERS
+########################################
+resource "aws_ecs_service" "text_extract" {
+  name            = "${var.project}-${var.environment}-text-extract"
   cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.worker.arn
+  task_definition = aws_ecs_task_definition.worker_text_extract.arn
   launch_type     = "FARGATE"
 
   desired_count = 1
-
-  deployment_minimum_healthy_percent = 0
-  deployment_maximum_percent         = 100
 
   network_configuration {
     subnets         = module.vpc.private_subnets
@@ -206,7 +321,43 @@ resource "aws_ecs_service" "worker" {
     assign_public_ip = false
   }
 
-  enable_execute_command = true
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+}
+
+resource "aws_ecs_service" "chunk_embed" {
+  name            = "${var.project}-${var.environment}-chunk-embed"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker_chunk_embed.arn
+  launch_type     = "FARGATE"
+
+  desired_count = 1
+
+  network_configuration {
+    subnets         = module.vpc.private_subnets
+    security_groups = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = false
+  }
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+}
+
+resource "aws_ecs_service" "document_delete" {
+  name            = "${var.project}-${var.environment}-document-delete"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker_document_delete.arn
+  launch_type     = "FARGATE"
+
+  desired_count = 1
+
+  network_configuration {
+    subnets         = module.vpc.private_subnets
+    security_groups = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = false
+  }
 
   lifecycle {
     ignore_changes = [task_definition]

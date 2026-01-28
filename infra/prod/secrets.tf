@@ -37,7 +37,3 @@ data "aws_secretsmanager_secret" "razorpay_key_secret" {
 data "aws_secretsmanager_secret" "resend_api_key" {
   name = "${var.project}/${var.environment}/resend_api_key"
 }
-
-data "aws_secretsmanager_secret" "auth_secret" {
-  name = "${var.project}/${var.environment}/auth_secret"
-}

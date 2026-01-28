@@ -120,9 +120,7 @@ resource "aws_iam_policy" "ecs_secrets_access" {
         data.aws_secretsmanager_secret.pinecone_api_key.arn,
         data.aws_secretsmanager_secret.resend_api_key.arn,
         data.aws_secretsmanager_secret.razorpay_key_secret.arn,
-        data.aws_secretsmanager_secret.razorpay_key_id.arn,
-        data.aws_secretsmanager_secret.auth_secret.arn,
-        
+        data.aws_secretsmanager_secret.razorpay_key_id.arn, 
       ]
     }]
   })
