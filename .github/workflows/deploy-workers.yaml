@@ -8,6 +8,8 @@ on:
       - "packages/**"
       - "docker/Dockerfile.workers"
 
+  workflow-dispatch:
+
 env:
   AWS_REGION: eu-north-1
 
