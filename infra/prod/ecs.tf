@@ -400,3 +400,102 @@ resource "aws_ecs_service" "api" {
   depends_on = [aws_lb_listener.http]
 }
 
+
+########################################
+# ECS SERVICE — WORKERS AUTOSCALING
+########################################
+resource "aws_appautoscaling_target" "text_extract" {
+  max_capacity       = 10
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.text_extract.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "text_extract" {
+  name               = "text-extract-sqs-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.text_extract.resource_id
+  scalable_dimension = aws_appautoscaling_target.text_extract.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.text_extract.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value = 5
+
+    predefined_metric_specification {
+      predefined_metric_type = "SQSQueueMessagesVisible"
+      resource_label = replace(
+        aws_sqs_queue.main["text-extract"].arn,
+        "arn:aws:sqs:${var.aws_region}:",
+        ""
+      )
+    }
+
+    scale_in_cooldown  = 70
+    scale_out_cooldown = 30
+  }
+}
+
+resource "aws_appautoscaling_target" "chunk_embed" {
+  max_capacity       = 5
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.chunk_embed.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "chunk_embed" {
+  name               = "chunk-embed-sqs-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.chunk_embed.resource_id
+  scalable_dimension = aws_appautoscaling_target.chunk_embed.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.chunk_embed.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value = 2
+
+    predefined_metric_specification {
+      predefined_metric_type = "SQSQueueMessagesVisible"
+      resource_label = replace(
+        aws_sqs_queue.main["chunk-embed"].arn,
+        "arn:aws:sqs:${var.aws_region}:",
+        ""
+      )
+    }
+
+    scale_in_cooldown  = 70
+    scale_out_cooldown = 30
+  }
+}
+
+resource "aws_appautoscaling_target" "document_delete" {
+  max_capacity       = 3
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.document_delete.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "document_delete" {
+  name               = "document-delete-sqs-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.document_delete.resource_id
+  scalable_dimension = aws_appautoscaling_target.document_delete.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.document_delete.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value = 10
+
+    predefined_metric_specification {
+      predefined_metric_type = "SQSQueueMessagesVisible"
+      resource_label = replace(
+        aws_sqs_queue.main["document-delete"].arn,
+        "arn:aws:sqs:${var.aws_region}:",
+        ""
+      )
+    }
+
+    scale_in_cooldown  = 70
+    scale_out_cooldown = 30
+  }
+}

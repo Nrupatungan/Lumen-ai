@@ -137,5 +137,15 @@ jobs:
         run: |
           aws ecs update-service \
             --cluster lumen-prod-cluster \
-            --service lumen-prod-worker \
+            --service lumen-prod-text-extract \
+            --force-new-deployment
+
+          aws ecs update-service \
+            --cluster lumen-prod-cluster \
+            --service lumen-prod-chunk-embed \
+            --force-new-deployment
+
+          aws ecs update-service \
+            --cluster lumen-prod-cluster \
+            --service lumen-prod-document-delete \
             --force-new-deployment
