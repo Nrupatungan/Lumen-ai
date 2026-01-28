@@ -462,16 +462,20 @@ resource "aws_appautoscaling_policy" "text_extract_scale_in" {
     cooldown                = 120
     metric_aggregation_type = "Average"
 
+    # Queue == 0 → scale in
     step_adjustment {
       metric_interval_upper_bound = 0
       scaling_adjustment          = -1
     }
 
+    # Queue > 0 → no-op
     step_adjustment {
-      scaling_adjustment = 0
+      metric_interval_lower_bound = 0
+      scaling_adjustment          = 0
     }
   }
 }
+
 
 resource "aws_cloudwatch_metric_alarm" "text_extract_scale_in_alarm" {
   alarm_name          = "text-extract-queue-empty"
@@ -556,10 +560,12 @@ resource "aws_appautoscaling_policy" "chunk_embed_scale_in" {
     }
 
     step_adjustment {
-      scaling_adjustment = 0
+      metric_interval_lower_bound = 0
+      scaling_adjustment          = 0
     }
   }
 }
+
 
 resource "aws_cloudwatch_metric_alarm" "chunk_embed_scale_in_alarm" {
   alarm_name          = "chunk-embed-queue-empty"
@@ -638,18 +644,18 @@ resource "aws_appautoscaling_policy" "document_delete_scale_in" {
     cooldown                = 120
     metric_aggregation_type = "Average"
 
-    # Queue <= 1 → scale in
     step_adjustment {
       metric_interval_upper_bound = 1
       scaling_adjustment          = -1
     }
 
-    # REQUIRED fallback step (no bounds)
     step_adjustment {
-      scaling_adjustment = 0
+      metric_interval_lower_bound = 1
+      scaling_adjustment          = 0
     }
   }
 }
+
 
 resource "aws_cloudwatch_metric_alarm" "document_delete_scale_in_alarm" {
   alarm_name          = "document-delete-queue-low"
