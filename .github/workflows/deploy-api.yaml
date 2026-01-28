@@ -74,6 +74,9 @@ jobs:
           restore-keys: |
             turbo-${{ runner.os }}-
 
+      - name: Build packages
+        run: pnpm --filter @repo/* build
+
       - name: Build API
         run: pnpm --filter server build
 
