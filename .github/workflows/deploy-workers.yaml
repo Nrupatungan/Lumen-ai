@@ -10,9 +10,6 @@ on:
 
   workflow_dispatch:
 
-env:
-  AWS_REGION: eu-north-1
-
 jobs:
   deploy-workers:
     runs-on: ubuntu-latest
@@ -87,7 +84,7 @@ jobs:
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+          aws-region:            ${{ vars.TF_VAR_AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v2
 
@@ -103,7 +100,7 @@ jobs:
           file: docker/Dockerfile.workers
           push: true
           tags: |
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/lumen-prod-worker:${{ github.sha }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.TF_VAR_AWS_REGION }}.amazonaws.com/lumen-prod-worker:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -122,6 +119,13 @@ jobs:
         working-directory: infra/prod
         env:
           TF_VAR_api_image_tag: ${{ github.sha }}
+          TF_VAR_auth_secret: ${{ secrets.TF_VAR_AUTH_SECRET }}
+          TF_VAR_aws_region: ${{ vars.TF_VAR_AWS_REGION }}
+          TF_VAR_environment: ${{ vars.TF_VAR_ENVIRONMENT }}
+          TF_VAR_frontend_url: ${{ vars.TF_VAR_FRONTEND_URL }}
+          TF_VAR_project: ${{ vars.TF_VAR_PROJECT }}
+          TF_VAR_resend_from_email: ${{ vars.TF_VAR_RESEND_FROM_EMAIL }}
+          TF_VAR_whitelist: ${{ vars.TF_VAR_WHITELIST }}
         run: |
           terraform init
           terraform apply -auto-approve
