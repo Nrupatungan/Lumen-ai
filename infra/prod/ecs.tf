@@ -321,9 +321,9 @@ resource "aws_ecs_service" "text_extract" {
     assign_public_ip = false
   }
 
-  lifecycle {
-    ignore_changes = [task_definition]
-  }
+  # lifecycle {
+  #   ignore_changes = [task_definition]
+  # }
 }
 
 resource "aws_ecs_service" "chunk_embed" {
@@ -340,9 +340,9 @@ resource "aws_ecs_service" "chunk_embed" {
     assign_public_ip = false
   }
 
-  lifecycle {
-    ignore_changes = [task_definition]
-  }
+  # lifecycle {
+  #   ignore_changes = [task_definition]
+  # }
 }
 
 resource "aws_ecs_service" "document_delete" {
@@ -359,9 +359,9 @@ resource "aws_ecs_service" "document_delete" {
     assign_public_ip = false
   }
 
-  lifecycle {
-    ignore_changes = [task_definition]
-  }
+  # lifecycle {
+  #   ignore_changes = [task_definition]
+  # }
 }
 
 ########################################
@@ -387,9 +387,9 @@ resource "aws_ecs_service" "api" {
 
   enable_execute_command = true
 
-  lifecycle {
-    ignore_changes = [task_definition]
-  }
+  # lifecycle {
+  #   ignore_changes = [task_definition]
+  # }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.api.arn
