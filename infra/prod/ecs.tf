@@ -412,28 +412,84 @@ resource "aws_appautoscaling_target" "text_extract" {
   service_namespace  = "ecs"
 }
 
-resource "aws_appautoscaling_policy" "text_extract" {
-  name               = "text-extract-sqs-scaling"
-  policy_type        = "TargetTrackingScaling"
+resource "aws_appautoscaling_policy" "text_extract_scale_out" {
+  name               = "text-extract-scale-out"
+  policy_type        = "StepScaling"
   resource_id        = aws_appautoscaling_target.text_extract.resource_id
   scalable_dimension = aws_appautoscaling_target.text_extract.scalable_dimension
   service_namespace  = aws_appautoscaling_target.text_extract.service_namespace
 
-  target_tracking_scaling_policy_configuration {
-    target_value = 5
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 30
+    metric_aggregation_type = "Average"
 
-    predefined_metric_specification {
-      predefined_metric_type = "SQSQueueMessagesVisible"
-      resource_label = replace(
-        aws_sqs_queue.main["text-extract"].arn,
-        "arn:aws:sqs:${var.aws_region}:",
-        ""
-      )
+    step_adjustment {
+      metric_interval_lower_bound = 0
+      scaling_adjustment          = 1
+    }
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "text_extract_scale_out_alarm" {
+  alarm_name          = "text-extract-queue-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 5
+
+  dimensions = {
+    QueueName = aws_sqs_queue.main["text-extract"].name
+  }
+
+  alarm_actions = [
+    aws_appautoscaling_policy.text_extract_scale_out.arn
+  ]
+}
+
+resource "aws_appautoscaling_policy" "text_extract_scale_in" {
+  name               = "text-extract-scale-in"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.text_extract.resource_id
+  scalable_dimension = aws_appautoscaling_target.text_extract.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.text_extract.service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 120
+    metric_aggregation_type = "Average"
+
+    step_adjustment {
+      metric_interval_upper_bound = 0
+      scaling_adjustment          = -1
     }
 
-    scale_in_cooldown  = 70
-    scale_out_cooldown = 30
+    step_adjustment {
+      scaling_adjustment = 0
+    }
   }
+}
+
+resource "aws_cloudwatch_metric_alarm" "text_extract_scale_in_alarm" {
+  alarm_name          = "text-extract-queue-empty"
+  comparison_operator = "LessThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 0
+
+  dimensions = {
+    QueueName = aws_sqs_queue.main["text-extract"].name
+  }
+
+  alarm_actions = [
+    aws_appautoscaling_policy.text_extract_scale_in.arn
+  ]
 }
 
 resource "aws_appautoscaling_target" "chunk_embed" {
@@ -444,28 +500,84 @@ resource "aws_appautoscaling_target" "chunk_embed" {
   service_namespace  = "ecs"
 }
 
-resource "aws_appautoscaling_policy" "chunk_embed" {
-  name               = "chunk-embed-sqs-scaling"
-  policy_type        = "TargetTrackingScaling"
+resource "aws_appautoscaling_policy" "chunk_embed_scale_out" {
+  name               = "chunk-embed-scale-out"
+  policy_type        = "StepScaling"
   resource_id        = aws_appautoscaling_target.chunk_embed.resource_id
   scalable_dimension = aws_appautoscaling_target.chunk_embed.scalable_dimension
   service_namespace  = aws_appautoscaling_target.chunk_embed.service_namespace
 
-  target_tracking_scaling_policy_configuration {
-    target_value = 2
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 45
+    metric_aggregation_type = "Average"
 
-    predefined_metric_specification {
-      predefined_metric_type = "SQSQueueMessagesVisible"
-      resource_label = replace(
-        aws_sqs_queue.main["chunk-embed"].arn,
-        "arn:aws:sqs:${var.aws_region}:",
-        ""
-      )
+    step_adjustment {
+      metric_interval_lower_bound = 0
+      scaling_adjustment          = 1
+    }
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "chunk_embed_scale_out_alarm" {
+  alarm_name          = "chunk-embed-queue-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 2
+
+  dimensions = {
+    QueueName = aws_sqs_queue.main["chunk-embed"].name
+  }
+
+  alarm_actions = [
+    aws_appautoscaling_policy.chunk_embed_scale_out.arn
+  ]
+}
+
+resource "aws_appautoscaling_policy" "chunk_embed_scale_in" {
+  name               = "chunk-embed-scale-in"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.chunk_embed.resource_id
+  scalable_dimension = aws_appautoscaling_target.chunk_embed.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.chunk_embed.service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 180
+    metric_aggregation_type = "Average"
+
+    step_adjustment {
+      metric_interval_upper_bound = 0
+      scaling_adjustment          = -1
     }
 
-    scale_in_cooldown  = 70
-    scale_out_cooldown = 30
+    step_adjustment {
+      scaling_adjustment = 0
+    }
   }
+}
+
+resource "aws_cloudwatch_metric_alarm" "chunk_embed_scale_in_alarm" {
+  alarm_name          = "chunk-embed-queue-empty"
+  comparison_operator = "LessThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 0
+
+  dimensions = {
+    QueueName = aws_sqs_queue.main["chunk-embed"].name
+  }
+
+  alarm_actions = [
+    aws_appautoscaling_policy.chunk_embed_scale_in.arn
+  ]
 }
 
 resource "aws_appautoscaling_target" "document_delete" {
@@ -476,26 +588,134 @@ resource "aws_appautoscaling_target" "document_delete" {
   service_namespace  = "ecs"
 }
 
-resource "aws_appautoscaling_policy" "document_delete" {
-  name               = "document-delete-sqs-scaling"
-  policy_type        = "TargetTrackingScaling"
+resource "aws_appautoscaling_policy" "document_delete_scale_out" {
+  name               = "document-delete-scale-out"
+  policy_type        = "StepScaling"
   resource_id        = aws_appautoscaling_target.document_delete.resource_id
   scalable_dimension = aws_appautoscaling_target.document_delete.scalable_dimension
   service_namespace  = aws_appautoscaling_target.document_delete.service_namespace
 
-  target_tracking_scaling_policy_configuration {
-    target_value = 10
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Average"
 
-    predefined_metric_specification {
-      predefined_metric_type = "SQSQueueMessagesVisible"
-      resource_label = replace(
-        aws_sqs_queue.main["document-delete"].arn,
-        "arn:aws:sqs:${var.aws_region}:",
-        ""
-      )
+    step_adjustment {
+      metric_interval_lower_bound = 0
+      scaling_adjustment          = 1
     }
-
-    scale_in_cooldown  = 70
-    scale_out_cooldown = 30
   }
 }
+
+resource "aws_cloudwatch_metric_alarm" "document_delete_scale_out_alarm" {
+  alarm_name          = "document-delete-queue-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 10
+
+  dimensions = {
+    QueueName = aws_sqs_queue.main["document-delete"].name
+  }
+
+  alarm_actions = [
+    aws_appautoscaling_policy.document_delete_scale_out.arn
+  ]
+}
+
+resource "aws_appautoscaling_policy" "document_delete_scale_in" {
+  name               = "document-delete-scale-in"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.document_delete.resource_id
+  scalable_dimension = aws_appautoscaling_target.document_delete.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.document_delete.service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 120
+    metric_aggregation_type = "Average"
+
+    # Queue <= 1 → scale in
+    step_adjustment {
+      metric_interval_upper_bound = 1
+      scaling_adjustment          = -1
+    }
+
+    # REQUIRED fallback step (no bounds)
+    step_adjustment {
+      scaling_adjustment = 0
+    }
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "document_delete_scale_in_alarm" {
+  alarm_name          = "document-delete-queue-low"
+  comparison_operator = "LessThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 1
+
+  dimensions = {
+    QueueName = aws_sqs_queue.main["document-delete"].name
+  }
+
+  alarm_actions = [
+    aws_appautoscaling_policy.document_delete_scale_in.arn
+  ]
+}
+
+########################################
+# ECS SERVICE — API AUTOSCALING
+########################################
+resource "aws_appautoscaling_target" "api" {
+  max_capacity       = 6
+  min_capacity       = 2
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.api.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "api_cpu" {
+  name               = "api-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.api.resource_id
+  scalable_dimension = aws_appautoscaling_target.api.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.api.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value = 60
+
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+
+    scale_in_cooldown  = 120
+    scale_out_cooldown = 60
+  }
+}
+
+resource "aws_appautoscaling_policy" "api_memory" {
+  name               = "api-memory-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.api.resource_id
+  scalable_dimension = aws_appautoscaling_target.api.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.api.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value = 70
+
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+
+    scale_in_cooldown  = 180
+    scale_out_cooldown = 90
+  }
+}
+
