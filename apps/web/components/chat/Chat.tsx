@@ -6,11 +6,11 @@ import { useToast } from "@/hooks/useToast";
 import { apiClient } from "@/lib/apiClient";
 import { streamChat } from "@/lib/chatStream";
 import { useConversationMessages } from "@/hooks/useConversationMessages";
-import { ChatMessage } from "@/components/chat/types";
 import ChatMessageList from "./ChatMessageList";
 import ChatHeader from "./ChatHeader";
 import ChatInput from "./ChatInput";
 import { withInlineCitations } from "@/utils";
+import { ChatMessage } from "@/lib/types";
 
 interface ChatPageProps {
   user: {

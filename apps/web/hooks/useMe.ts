@@ -1,5 +1,5 @@
 import { api } from "@/lib/apiClient";
-import { Plan } from "@repo/policy";
+import { Plan } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 
 export type Me = {

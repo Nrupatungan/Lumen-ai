@@ -37,3 +37,8 @@ variable "auth_secret" {
   description = "Auth secret"
   type = string
 }
+
+variable "domain_name" {
+  description = "Domain name"
+  type = string
+}

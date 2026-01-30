@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import { ChatMessage } from "@/components/chat/types";
+import { ChatMessage } from "@/lib/types";
 
 type ConversationMessagesResponse = {
   messages: ChatMessage[];

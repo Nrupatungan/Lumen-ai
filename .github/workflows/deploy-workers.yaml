@@ -126,6 +126,7 @@ jobs:
           TF_VAR_project: ${{ vars.TF_VAR_PROJECT }}
           TF_VAR_resend_from_email: ${{ vars.TF_VAR_RESEND_FROM_EMAIL }}
           TF_VAR_whitelist: ${{ vars.TF_VAR_WHITELIST }}
+          TF_VAR_DOMAIN_NAME: ${{ vars.TF_VAR_DOMAIN_NAME }}
         run: |
           terraform init
           terraform apply -auto-approve

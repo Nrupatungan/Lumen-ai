@@ -11,3 +11,7 @@ output "documents_bucket" {
 output "api_url" {
   value = aws_lb.api.dns_name
 }
+
+output "acm_dns_validation_records" {
+  value = aws_acm_certificate.api.domain_validation_options
+}

@@ -6,11 +6,11 @@ import { Person, ContentCopy, Check } from "@mui/icons-material";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import { ChatMessage } from "./types";
 import { useMe } from "@/hooks/useMe";
 import { useState } from "react";
 import SourcePreviewModal from "./SourcePreviewModal";
 import ChatMessageSources from "./ChatMessageSources";
+import { ChatMessage } from "@/lib/types";
 
 interface ChatMessageItemProps {
   message: ChatMessage;

@@ -1,4 +1,4 @@
-import { RagSource } from "@/components/chat/types";
+import { RagSource } from "@/lib/types";
 
 export function getInitials(name?: string) {
   if (!name) return "?";

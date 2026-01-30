@@ -11,10 +11,10 @@ import {
 } from "@mui/material";
 import { SmartToy, AutoAwesome } from "@mui/icons-material";
 
-import { ChatMessage } from "./types";
 import ChatMessageItem from "./ChatMessageItem";
 import { suggestedPrompts } from "@/lib/data";
 import { useEffect, useRef } from "react";
+import { ChatMessage } from "@/lib/types";
 
 interface ChatMessageListProps {
   messages: ChatMessage[];

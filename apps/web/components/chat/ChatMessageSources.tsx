@@ -1,7 +1,7 @@
 "use client";
 
+import { RagSource } from "@/lib/types";
 import { Stack, Button, Typography } from "@mui/material";
-import { RagSource } from "./types";
 
 interface Props {
   sources: RagSource[];
