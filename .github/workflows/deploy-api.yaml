@@ -7,7 +7,6 @@ on:
       - "apps/server/**"
       - "packages/**"
       - "docker/Dockerfile.api"
-  
   workflow_dispatch:
 
 jobs:
@@ -15,86 +14,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       # ------------------------------
-      # Install Node
+      # Node + pnpm
       # ------------------------------
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-          check-latest: true
 
-      # ------------------------------
-      # Enable pnpm
-      # ------------------------------
-      - name: Enable pnpm via corepack
+      - name: Enable pnpm
         run: |
           corepack enable
           corepack prepare pnpm@latest-10 --activate
-          pnpm --version
 
       # ------------------------------
-      # Cache pnpm store
+      # Cache pnpm
       # ------------------------------
-      - name: Determine pnpm store path
+      - name: Get pnpm store
         id: pnpm-store
-        run: echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
-      - name: Cache pnpm store
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            pnpm-store-${{ runner.os }}-
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @repo/* build
+      - run: pnpm --filter server build
 
       # ------------------------------
-      # pnpm install
-      # ------------------------------
-      - name: Fetch dependencies
-        run: pnpm fetch
-
-      - name: Install dependencies (offline)
-        run: pnpm install --offline --frozen-lockfile
-
-      # ------------------------------
-      # Cache Turbo
-      # ------------------------------
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
-
-      - name: Build packages
-        run: pnpm --filter @repo/* build
-
-      - name: Build API
-        run: pnpm --filter server build
-
-      # ----------------------------
       # AWS + ECR
-      # ----------------------------
-      - name: Configure AWS
-        uses: aws-actions/configure-aws-credentials@v4
+      # ------------------------------
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ vars.TF_VAR_AWS_REGION }}
 
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - uses: aws-actions/amazon-ecr-login@v2
 
-      # ----------------------------
-      # Docker build cache
-      # ----------------------------
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
       - name: Build & push API image
         uses: docker/build-push-action@v5
@@ -107,37 +69,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ----------------------------
-      # Setup Terraform
-      # ----------------------------
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.6.6
-
-      # ----------------------------
-      # Terraform
-      # ----------------------------
-      - name: Terraform apply
-        working-directory: infra/prod
-        env:
-          TF_VAR_api_image_tag: ${{ github.sha }}
-          TF_VAR_auth_secret: ${{ secrets.TF_VAR_AUTH_SECRET }}
-          TF_VAR_aws_region: ${{ vars.TF_VAR_AWS_REGION }}
-          TF_VAR_environment: ${{ vars.TF_VAR_ENVIRONMENT }}
-          TF_VAR_frontend_url: ${{ vars.TF_VAR_FRONTEND_URL }}
-          TF_VAR_project: ${{ vars.TF_VAR_PROJECT }}
-          TF_VAR_resend_from_email: ${{ vars.TF_VAR_RESEND_FROM_EMAIL }}
-          TF_VAR_whitelist: ${{ vars.TF_VAR_WHITELIST }}
-          TF_VAR_domain_name: ${{ vars.TF_VAR_DOMAIN_NAME }}
-        run: |
-          terraform init
-          terraform apply -auto-approve
-
-      # ----------------------------
-      # ECS redeploy
-      # ----------------------------
-      - name: Redeploy API service
+      # ------------------------------
+      # ECS deploy
+      # ------------------------------
+      - name: Force API redeploy
         run: |
           aws ecs update-service \
             --cluster lumen-prod-cluster \

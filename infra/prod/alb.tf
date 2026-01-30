@@ -44,6 +44,10 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_lb_listener" "https" {
+  depends_on = [
+    aws_acm_certificate_validation.api
+  ]
+
   load_balancer_arn = aws_lb.api.arn
   port              = 443
   protocol          = "HTTPS"

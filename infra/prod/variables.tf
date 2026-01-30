@@ -28,11 +28,6 @@ variable "resend_from_email" {
   type = string
 }
 
-variable "api_image_tag" {
-  description = "Stores api image tag version"
-  type = string
-}
-
 variable "auth_secret" {
   description = "Auth secret"
   type = string

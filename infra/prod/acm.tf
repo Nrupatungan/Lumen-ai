@@ -10,3 +10,7 @@ resource "aws_acm_certificate" "api" {
     Name = "${var.project}-${var.environment}-api-cert"
   }
 }
+
+resource "aws_acm_certificate_validation" "api" {
+  certificate_arn = aws_acm_certificate.api.arn
+}

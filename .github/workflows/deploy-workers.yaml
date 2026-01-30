@@ -7,7 +7,6 @@ on:
       - "apps/workers/**"
       - "packages/**"
       - "docker/Dockerfile.workers"
-
   workflow_dispatch:
 
 jobs:
@@ -15,71 +14,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # ------------------------------
-      # Install Node
-      # ------------------------------
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-          check-latest: true
 
-      # ------------------------------
-      # Enable pnpm
-      # ------------------------------
-      - name: Enable pnpm via corepack
-        run: |
+      - run: |
           corepack enable
           corepack prepare pnpm@latest-10 --activate
-          pnpm --version
 
-      # ------------------------------
-      # Cache pnpm store
-      # ------------------------------
-      - name: Determine pnpm store path
-        id: pnpm-store
-        run: echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+      - run: pnpm install --frozen-lockfile
 
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            pnpm-store-${{ runner.os }}-
+      - run: pnpm --filter @repo/* build
+      - run: pnpm --filter workers build
 
-      # ------------------------------
-      # pnpm install
-      # ------------------------------
-      - name: Fetch dependencies
-        run: pnpm fetch
-
-      - name: Install dependencies (offline)
-        run: pnpm install --offline --frozen-lockfile
-
-      # ------------------------------
-      # Cache Turbo
-      # ------------------------------
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
-
-      - name: Build packages
-        run: pnpm --filter @repo/* build
-
-      - name: Build workers
-        run: pnpm --filter workers build
-
-      # ----------------------------
-      # AWS + ECR
-      # ----------------------------
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -87,13 +36,9 @@ jobs:
           aws-region:            ${{ vars.TF_VAR_AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v2
-
-      # ----------------------------
-      # Docker build cache
-      # ----------------------------
       - uses: docker/setup-buildx-action@v3
 
-      - name: Build & push workers image
+      - name: Build & push workers
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -104,49 +49,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ----------------------------
-      # Setup Terraform
-      # ----------------------------
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.6.6
-
-      # ----------------------------
-      # Terraform
-      # ----------------------------
-      - name: Terraform apply
-        working-directory: infra/prod
-        env:
-          TF_VAR_api_image_tag: ${{ github.sha }}
-          TF_VAR_auth_secret: ${{ secrets.TF_VAR_AUTH_SECRET }}
-          TF_VAR_aws_region: ${{ vars.TF_VAR_AWS_REGION }}
-          TF_VAR_environment: ${{ vars.TF_VAR_ENVIRONMENT }}
-          TF_VAR_frontend_url: ${{ vars.TF_VAR_FRONTEND_URL }}
-          TF_VAR_project: ${{ vars.TF_VAR_PROJECT }}
-          TF_VAR_resend_from_email: ${{ vars.TF_VAR_RESEND_FROM_EMAIL }}
-          TF_VAR_whitelist: ${{ vars.TF_VAR_WHITELIST }}
-          TF_VAR_domain_name: ${{ vars.TF_VAR_DOMAIN_NAME }}
-        run: |
-          terraform init
-          terraform apply -auto-approve
-
-      # ----------------------------
-      # ECS redeploy
-      # ----------------------------
       - name: Redeploy workers
         run: |
-          aws ecs update-service \
-            --cluster lumen-prod-cluster \
-            --service lumen-prod-text-extract \
-            --force-new-deployment
-
-          aws ecs update-service \
-            --cluster lumen-prod-cluster \
-            --service lumen-prod-chunk-embed \
-            --force-new-deployment
-
-          aws ecs update-service \
-            --cluster lumen-prod-cluster \
-            --service lumen-prod-document-delete \
-            --force-new-deployment
+          aws ecs update-service --cluster lumen-prod-cluster --service lumen-prod-text-extract --force-new-deployment
+          aws ecs update-service --cluster lumen-prod-cluster --service lumen-prod-chunk-embed --force-new-deployment
+          aws ecs update-service --cluster lumen-prod-cluster --service lumen-prod-document-delete --force-new-deployment

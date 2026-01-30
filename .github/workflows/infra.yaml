@@ -1,0 +1,50 @@
+name: Infrastructure (Terraform)
+
+on:
+  push:
+    paths:
+      - "infra/**"
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ------------------------------
+      # AWS credentials
+      # ------------------------------
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ vars.TF_VAR_AWS_REGION }}
+
+      # ------------------------------
+      # Terraform
+      # ------------------------------
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Terraform Init
+        working-directory: infra/prod
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: infra/prod
+        env:
+          TF_VAR_project:           ${{ vars.TF_VAR_PROJECT }}
+          TF_VAR_environment:       ${{ vars.TF_VAR_ENVIRONMENT }}
+          TF_VAR_aws_region:        ${{ vars.TF_VAR_AWS_REGION }}
+          TF_VAR_frontend_url:      ${{ vars.TF_VAR_FRONTEND_URL }}
+          TF_VAR_domain_name:       ${{ vars.TF_VAR_DOMAIN_NAME }}
+          TF_VAR_whitelist:         ${{ vars.TF_VAR_WHITELIST }}
+          TF_VAR_resend_from_email: ${{ vars.TF_VAR_RESEND_FROM_EMAIL }}
+          TF_VAR_auth_secret:       ${{ secrets.TF_VAR_AUTH_SECRET }}
+        run: terraform apply -auto-approve
