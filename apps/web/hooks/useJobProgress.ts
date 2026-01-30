@@ -1,5 +1,6 @@
 // React hook for subscribing to ingestion job progress via WebSocket
 import { apiClient } from "@/lib/apiClient";
+import { getWebSocketUrl } from "@/utils";
 import { useEffect, useRef, useState } from "react";
 
 export interface JobProgressEvent {
@@ -44,16 +45,24 @@ export function useJobProgress({
       const token = await apiClient.getWsToken();
       if (!token || cancelled) return;
 
-      const socket = new WebSocket(
-        `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/ws/progress?token=${encodeURIComponent(token)}`,
+      const wsUrl = getWebSocketUrl(
+        `/ws/progress?token=${encodeURIComponent(token)}`,
       );
 
+      const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
       socket.onopen = () => {
         if (cancelled) return;
+
         setConnected(true);
-        socket.send(JSON.stringify({ action: "subscribe", jobId }));
+
+        socket.send(
+          JSON.stringify({
+            action: "subscribe",
+            jobId,
+          }),
+        );
       };
 
       socket.onmessage = (event) => {
@@ -65,7 +74,7 @@ export function useJobProgress({
             socket.close();
           }
         } catch {
-          //
+          // ignore malformed messages
         }
       };
 

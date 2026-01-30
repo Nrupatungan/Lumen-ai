@@ -14,12 +14,10 @@ import {
   createPasswordReset,
 } from "../services/auth.service.js";
 import {
-  registerSchema,
   loginSchema,
-  requestPasswordResetSchema,
-} from "@repo/shared-node";
-import {
   oauthLoginSchema,
+  registerSchema,
+  requestPasswordResetSchema,
   resetPasswordSchema,
 } from "../libs/validators/auth.validator.js";
 import Busboy from "busboy";

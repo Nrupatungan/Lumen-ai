@@ -1,5 +1,5 @@
-import { OrderType, PaymentVerificaitonType } from "@repo/shared";
 import axios from "axios";
+import { OrderType, PaymentVerificaitonType } from "./validation/payment";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BACKEND_URL!,

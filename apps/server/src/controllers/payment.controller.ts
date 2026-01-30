@@ -13,8 +13,11 @@ import {
   setCachedSubscription,
 } from "@repo/cache";
 import z from "zod";
-import { orderSchema, paymentVerificaitonSchema } from "@repo/shared-node";
 import { getUserPlan } from "@repo/db";
+import {
+  orderSchema,
+  paymentVerificaitonSchema,
+} from "../libs/validators/payment.validator.js";
 
 const razorpay = getRazorpay();
 

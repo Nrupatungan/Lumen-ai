@@ -22,12 +22,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { api } from "@/lib/apiClient";
+import { AppLogoIcon } from "@/components/CustomIcon";
+import { useToast } from "@/hooks/useToast";
 import {
   RequestPasswordResetInput,
   requestPasswordResetSchema,
-} from "@repo/shared";
-import { AppLogoIcon } from "@/components/CustomIcon";
-import { useToast } from "@/hooks/useToast";
+} from "@/lib/validation/auth";
 
 export default function ForgotPassword() {
   const [emailSent, setEmailSent] = useState(false);

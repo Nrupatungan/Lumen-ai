@@ -32,3 +32,18 @@ export function withInlineCitations(
   const refs = sources.map((_, i) => `[${i + 1}]`).join("");
   return `${content}\n\n${refs}`;
 }
+
+export function getWebSocketUrl(path: string) {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  if (!backendUrl) {
+    throw new Error("NEXT_PUBLIC_BACKEND_URL is not defined");
+  }
+
+  const url = new URL(backendUrl);
+
+  // Convert protocol
+  const wsProtocol = url.protocol === "https:" ? "wss:" : "ws:";
+
+  return `${wsProtocol}//${url.host}${path}`;
+}

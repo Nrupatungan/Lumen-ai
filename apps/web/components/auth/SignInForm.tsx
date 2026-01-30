@@ -20,12 +20,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { loginSchema, type LoginInput } from "@repo/shared";
 import { signInAction } from "@/actions/sign-in-action";
 import { OAuthLogin } from "@/actions/oauth-action";
 import { AppLogoIcon } from "../CustomIcon";
 import { GitHub, Google } from "@mui/icons-material";
 import { useToast } from "@/hooks/useToast";
+import { LoginInput, loginSchema } from "@/lib/validation/auth";
 
 export function SignInForm() {
   const [loading, setLoading] = useState(false);

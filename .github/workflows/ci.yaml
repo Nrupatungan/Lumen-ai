@@ -103,5 +103,5 @@ jobs:
       # ------------------------------
       # Tests
       #- name: Run tests
-      #  run: pnpm test
+      #  run: pnpm --filter server test
       # ------------------------------
