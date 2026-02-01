@@ -24,7 +24,7 @@ resource "aws_ecs_task_definition" "api" {
   container_definitions = jsonencode([
     {
       name      = "api"
-      image = "${aws_ecr_repository.api.repository_url}:latest"
+      image = "${aws_ecr_repository.api.repository_url}:${var.image_tag}"
       essential = true
 
       portMappings = [
@@ -123,7 +123,7 @@ resource "aws_ecs_task_definition" "worker_text_extract" {
   container_definitions = jsonencode([
     {
       name    = "worker"
-      image   = "${aws_ecr_repository.worker.repository_url}:latest"
+      image   = "${aws_ecr_repository.worker.repository_url}:${var.image_tag}"
       command = ["node", "dist/text-extract/runner.js"]
 
       environment = [
@@ -186,7 +186,7 @@ resource "aws_ecs_task_definition" "worker_chunk_embed" {
   container_definitions = jsonencode([
     {
       name    = "worker"
-      image   = "${aws_ecr_repository.worker.repository_url}:latest"
+      image   = "${aws_ecr_repository.worker.repository_url}:${var.image_tag}"
       command = ["node", "dist/chunk-embed/runner.js"]
 
       environment = [
@@ -254,7 +254,7 @@ resource "aws_ecs_task_definition" "worker_document_delete" {
   container_definitions = jsonencode([
     {
       name    = "worker"
-      image   = "${aws_ecr_repository.worker.repository_url}:latest"
+      image   = "${aws_ecr_repository.worker.repository_url}:${var.image_tag}"
       command = ["node", "dist/document-delete/runner.js"]
 
       environment = [
