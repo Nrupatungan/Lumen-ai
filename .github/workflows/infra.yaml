@@ -47,4 +47,5 @@ jobs:
           TF_VAR_whitelist:         ${{ vars.TF_VAR_WHITELIST }}
           TF_VAR_resend_from_email: ${{ vars.TF_VAR_RESEND_FROM_EMAIL }}
           TF_VAR_auth_secret:       ${{ secrets.TF_VAR_AUTH_SECRET }}
+          TF_VAR_image_tag:         ${{ github.sha }}
         run: terraform apply -auto-approve

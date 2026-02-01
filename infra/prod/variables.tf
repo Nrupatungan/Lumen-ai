@@ -37,3 +37,8 @@ variable "domain_name" {
   description = "Domain name"
   type = string
 }
+
+variable "image_tag" {
+  description = "Image tag for the image to be deployed"
+  type        = string
+}
