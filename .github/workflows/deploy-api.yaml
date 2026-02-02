@@ -1,4 +1,4 @@
-name: Build API Image and Deploy to ECR
+name: Build & Deploy API (ECS)
 on:
   push:
     branches: [main]
@@ -76,23 +76,21 @@ jobs:
             --region ${{ vars.TF_VAR_AWS_REGION }}
 
 
-      - name: Deploy via CodeDeploy
+      # ------------------------------
+      # Deploy: ECS rolling update
+      # ------------------------------
+      - name: Trigger ECS deployment
         run: |
-          aws deploy create-deployment \
-            --application-name lumen-prod-ecs \
-            --deployment-group-name lumen-prod-api \
-            --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$(cat infra/prod/appspec.json | base64 -w0)\"}"
+          aws ecs update-service \
+            --cluster lumen-prod-cluster \
+            --service lumen-prod-api \
+            --force-new-deployment
 
       - name: Wait for ECS service stability
         run: |
-          DEPLOYMENT_ID=$(aws deploy list-deployments \
-            --application-name lumen-prod-ecs \
-            --deployment-group-name lumen-prod-api \
-            --query "deployments[0]" \
-            --output text)
-
-          aws deploy wait deployment-successful \
-            --deployment-id $DEPLOYMENT_ID
+          aws ecs wait services-stable \
+            --cluster lumen-prod-cluster \
+            --services lumen-prod-api
 
       - name: Verify API health endpoint
         run: |
