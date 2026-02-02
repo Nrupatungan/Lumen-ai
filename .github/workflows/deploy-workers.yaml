@@ -48,9 +48,3 @@ jobs:
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.TF_VAR_AWS_REGION }}.amazonaws.com/lumen-prod-worker:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Redeploy workers
-        run: |
-          aws ecs update-service --cluster lumen-prod-cluster --service lumen-prod-text-extract --force-new-deployment
-          aws ecs update-service --cluster lumen-prod-cluster --service lumen-prod-chunk-embed --force-new-deployment
-          aws ecs update-service --cluster lumen-prod-cluster --service lumen-prod-document-delete --force-new-deployment

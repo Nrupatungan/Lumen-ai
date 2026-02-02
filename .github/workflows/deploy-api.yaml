@@ -1,5 +1,4 @@
-name: Deploy API (ECS)
-
+name: Build API Image and Deploy to ECR
 on:
   push:
     branches: [main]
@@ -69,12 +68,47 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ------------------------------
-      # ECS deploy
-      # ------------------------------
-      - name: Force API redeploy
+      - name: Deploy via CodeDeploy
         run: |
-          aws ecs update-service \
-            --cluster lumen-prod-cluster \
-            --service lumen-prod-api \
-            --force-new-deployment
+          aws deploy create-deployment \
+            --application-name lumen-prod-ecs \
+            --deployment-group-name lumen-prod-api \
+            --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$(cat infra/prod/appspec.json | base64 -w0)\"}"
+
+      - name: Wait for ECS service stability
+        run: |
+          DEPLOYMENT_ID=$(aws deploy list-deployments \
+            --application-name lumen-prod-ecs \
+            --deployment-group-name lumen-prod-api \
+            --query "deployments[0]" \
+            --output text)
+
+          aws deploy wait deployment-successful \
+            --deployment-id $DEPLOYMENT_ID
+
+      - name: Verify API health endpoint
+        run: |
+          set -e
+
+          HEALTH_URL=https://api.lumen-ai.space/health
+          MAX_ATTEMPTS=30
+          SLEEP_SECONDS=5
+
+          echo "Checking health at $HEALTH_URL"
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || true)
+            echo "Attempt $i/$MAX_ATTEMPTS → HTTP $STATUS"
+
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ API is healthy"
+              exit 0
+            fi
+
+            sleep $SLEEP_SECONDS
+          done
+
+          echo "❌ API failed health check"
+          exit 1
+
+
