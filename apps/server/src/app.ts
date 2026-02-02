@@ -9,9 +9,20 @@ import cookieParser from "cookie-parser";
 const app: Express = e();
 const server = http.createServer(app);
 
-const allowedOrigins: string[] = process.env.CORS_WHITELIST
-  ? JSON.parse(process.env.CORS_WHITELIST)
-  : [];
+if (!process.env.CORS_WHITELIST) {
+  throw new Error("CORS_WHITELIST env var is missing");
+}
+
+let allowedOrigins: string[];
+try {
+  allowedOrigins = JSON.parse(process.env.CORS_WHITELIST);
+} catch {
+  throw new Error("CORS_WHITELIST must be valid JSON array");
+}
+
+if (!Array.isArray(allowedOrigins)) {
+  throw new Error("CORS_WHITELIST must be an array");
+}
 
 console.log("CORS whitelist:", allowedOrigins);
 
@@ -34,11 +45,10 @@ app.use(
       return callback(null, false);
     },
     credentials: true,
-  })
+  }),
 );
 
-// Explicit preflight support
-app.options("/*", cors());
+// Security middleware
 app.use(helmet());
 app.use(e.urlencoded({ extended: true }));
 app.use(cookieParser());
