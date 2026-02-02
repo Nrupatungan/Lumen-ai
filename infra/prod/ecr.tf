@@ -15,13 +15,3 @@ resource "aws_ecr_repository" "worker" {
     scan_on_push = true
   }
 }
-
-data "aws_ecr_image" "api" {
-  repository_name = aws_ecr_repository.api.name
-  image_tag       = var.image_tag
-}
-
-data "aws_ecr_image" "worker" {
-  repository_name = aws_ecr_repository.worker.name
-  image_tag       = var.image_tag
-}

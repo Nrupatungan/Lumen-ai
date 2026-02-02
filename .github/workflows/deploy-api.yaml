@@ -68,6 +68,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Verify API image exists in ECR
+        run: |
+          aws ecr describe-images \
+            --repository-name lumen-prod-api \
+            --image-ids imageTag=${{ github.sha }} \
+            --region ${{ vars.TF_VAR_AWS_REGION }}
+
+
       - name: Deploy via CodeDeploy
         run: |
           aws deploy create-deployment \

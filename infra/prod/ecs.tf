@@ -21,13 +21,6 @@ resource "aws_ecs_task_definition" "api" {
   execution_role_arn = aws_iam_role.ecs_execution.arn
   task_role_arn      = aws_iam_role.ecs_task.arn
 
-  lifecycle {
-    precondition {
-      condition     = can(data.aws_ecr_image.api.image_digest)
-      error_message = "ECR image '${var.image_tag}' does not exist in repository '${aws_ecr_repository.api.name}'. Deployment aborted."
-    }
-  }
-
   container_definitions = jsonencode([
     {
       name      = "api"
@@ -127,12 +120,6 @@ resource "aws_ecs_task_definition" "worker_text_extract" {
   execution_role_arn = aws_iam_role.ecs_execution.arn
   task_role_arn      = aws_iam_role.ecs_task.arn
 
-  lifecycle {
-    precondition {
-      condition     = can(data.aws_ecr_image.worker.image_digest)
-      error_message = "ECR image '${var.image_tag}' does not exist in repository '${aws_ecr_repository.worker.name}'. Deployment aborted."
-    }
-  }
 
   container_definitions = jsonencode([
     {
@@ -197,12 +184,6 @@ resource "aws_ecs_task_definition" "worker_chunk_embed" {
   execution_role_arn = aws_iam_role.ecs_execution.arn
   task_role_arn      = aws_iam_role.ecs_task.arn
 
-  lifecycle {
-    precondition {
-      condition     = can(data.aws_ecr_image.worker.image_digest)
-      error_message = "ECR image '${var.image_tag}' does not exist in repository '${aws_ecr_repository.worker.name}'. Deployment aborted."
-    }
-  }
 
   container_definitions = jsonencode([
     {
@@ -272,12 +253,6 @@ resource "aws_ecs_task_definition" "worker_document_delete" {
   execution_role_arn = aws_iam_role.ecs_execution.arn
   task_role_arn      = aws_iam_role.ecs_task.arn
 
-  lifecycle {
-    precondition {
-      condition     = can(data.aws_ecr_image.worker.image_digest)
-      error_message = "ECR image '${var.image_tag}' does not exist in repository '${aws_ecr_repository.worker.name}'. Deployment aborted."
-    }
-  }
 
   container_definitions = jsonencode([
     {
