@@ -45,7 +45,7 @@ app.use(
       return callback(null, false);
     },
     credentials: true,
-  })
+  }),
 );
 
 // Security middleware
