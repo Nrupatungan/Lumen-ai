@@ -391,9 +391,11 @@ resource "aws_ecs_service" "api" {
 
   enable_execute_command = true
 
-  deployment_controller {
-    type = "CODE_DEPLOY"
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
   }
+
 
   load_balancer {
     target_group_arn = aws_lb_target_group.api.arn
