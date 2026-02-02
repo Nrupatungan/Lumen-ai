@@ -112,7 +112,10 @@ resource "aws_iam_policy" "ecs_secrets_access" {
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
-      Action = ["secretsmanager:GetSecretValue"]
+      Action = [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ]
       Resource = [
         data.aws_secretsmanager_secret.mongo_uri.arn,
         data.aws_secretsmanager_secret.redis_url.arn,
@@ -120,11 +123,12 @@ resource "aws_iam_policy" "ecs_secrets_access" {
         data.aws_secretsmanager_secret.pinecone_api_key.arn,
         data.aws_secretsmanager_secret.resend_api_key.arn,
         data.aws_secretsmanager_secret.razorpay_key_secret.arn,
-        data.aws_secretsmanager_secret.razorpay_key_id.arn, 
+        data.aws_secretsmanager_secret.razorpay_key_id.arn
       ]
     }]
   })
 }
+
 
 resource "aws_iam_role_policy_attachment" "ecs_secrets_attach" {
   role       = aws_iam_role.ecs_task.name
