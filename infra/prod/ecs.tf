@@ -124,7 +124,7 @@ resource "aws_ecs_task_definition" "worker_text_extract" {
   container_definitions = jsonencode([
     {
       name    = "worker"
-      image   = "${aws_ecr_repository.worker.repository_url}:placeholder"
+      image   = "${aws_ecr_repository.worker.repository_url}:latest"
       command = ["node", "dist/text-extract/runner.js"]
 
       environment = [
@@ -188,7 +188,7 @@ resource "aws_ecs_task_definition" "worker_chunk_embed" {
   container_definitions = jsonencode([
     {
       name    = "worker"
-      image   = "${aws_ecr_repository.worker.repository_url}:placeholder"
+      image   = "${aws_ecr_repository.worker.repository_url}:latest"
       command = ["node", "dist/chunk-embed/runner.js"]
 
       environment = [
@@ -257,7 +257,7 @@ resource "aws_ecs_task_definition" "worker_document_delete" {
   container_definitions = jsonencode([
     {
       name    = "worker"
-      image   = "${aws_ecr_repository.worker.repository_url}:placeholder"
+      image   = "${aws_ecr_repository.worker.repository_url}:latest"
       command = ["node", "dist/document-delete/runner.js"]
 
       environment = [

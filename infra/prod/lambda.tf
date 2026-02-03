@@ -1,20 +1,4 @@
 ########################################
-# Lambda artifacts (tracked by Terraform)
-########################################
-
-data "archive_file" "ingestion_router" {
-  type        = "zip"
-  source_dir  = "${path.module}/../../apps/lambdas/dist/ingestion-router"
-  output_path = "${path.module}/artifacts/ingestion-router.zip"
-}
-
-data "archive_file" "usage_sync" {
-  type        = "zip"
-  source_dir  = "${path.module}/../../apps/lambdas/dist/usage-sync"
-  output_path = "${path.module}/artifacts/usage-sync.zip"
-}
-
-########################################
 # Lambda — Ingestion Router
 ########################################
 
@@ -26,18 +10,20 @@ resource "aws_lambda_function" "ingestion_router" {
   timeout       = 30
   memory_size  = 512
 
-  filename         = data.archive_file.ingestion_router.output_path
-  source_code_hash = data.archive_file.ingestion_router.output_base64sha256
+  # Placeholder only — real code is deployed by CI
+  filename = "${path.module}/artifacts/placeholder.zip"
 
   environment {
     variables = {
-      NODE_ENV        = "production"
+      NODE_ENV      = "production"
       MONGO_DB_NAME = var.project
-      # OCR_EXTRACT_QUEUE_URL
-      TEXT_EXTRACT_QUEUE_URL  = aws_sqs_queue.main["text-extract"].url
-      MONGO_URI = "${var.project}/${var.environment}/mongo_uri"
-      UPSTASH_REDIS_REST_URL = "${var.project}/${var.environment}/upstash_redis_url"
+
+      # Secret identifiers (NOT secret values)
+      MONGO_URI                = "${var.project}/${var.environment}/mongo_uri"
+      UPSTASH_REDIS_REST_URL   = "${var.project}/${var.environment}/upstash_redis_url"
       UPSTASH_REDIS_REST_TOKEN = "${var.project}/${var.environment}/upstash_redis_token"
+
+      TEXT_EXTRACT_QUEUE_URL = aws_sqs_queue.main["text-extract"].url
     }
   }
 
@@ -71,15 +57,16 @@ resource "aws_lambda_function" "usage_sync" {
   timeout       = 30
   memory_size  = 512
 
-  filename         = data.archive_file.usage_sync.output_path
-  source_code_hash = data.archive_file.usage_sync.output_base64sha256
+  # Placeholder only
+  filename = "${path.module}/artifacts/placeholder.zip"
 
   environment {
     variables = {
       NODE_ENV      = "production"
       MONGO_DB_NAME = var.project
-      MONGO_URI     = "${var.project}/${var.environment}/mongo_uri"
-      UPSTASH_REDIS_REST_URL = "${var.project}/${var.environment}/upstash_redis_url"
+
+      MONGO_URI                = "${var.project}/${var.environment}/mongo_uri"
+      UPSTASH_REDIS_REST_URL   = "${var.project}/${var.environment}/upstash_redis_url"
       UPSTASH_REDIS_REST_TOKEN = "${var.project}/${var.environment}/upstash_redis_token"
     }
   }
@@ -90,6 +77,4 @@ resource "aws_lambda_function" "usage_sync" {
     aws_iam_role_policy_attachment.lambda_sqs_attach,
     aws_iam_role_policy_attachment.lambda_s3_attach,
   ]
-
 }
-

@@ -27,10 +27,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Build lambdas
-      - run: | 
+        run: |
           pnpm --filter lambdas build
           grep -R "@repo/" apps/lambdas/dist && exit 1 || echo "✅ Lambdas fully bundled"
-
 
       - name: Package lambdas
         run: |
