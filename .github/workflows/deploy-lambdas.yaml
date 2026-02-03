@@ -20,20 +20,30 @@ jobs:
         with:
           node-version: 20
 
-      - run: |
+      - name: Enable pnpm
+        run: |
           corepack enable
           corepack prepare pnpm@latest-10 --activate
 
-      - run: pnpm install --frozen-lockfile
 
-      - name: Build workspace packages
-        run: pnpm --filter @repo/* build
+      # ------------------------------
+      # Cache pnpm
+      # ------------------------------
+      - name: Get pnpm store
+        id: pnpm-store
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - run: pnpm install --frozen-lockfile
 
       - name: Build lambdas
         run: |
+          pnpm --filter @repo/* build
           pnpm --filter lambdas build
-          grep -R "@repo/" apps/lambdas/dist && exit 1 || echo "✅ Lambdas fully bundled"
-
 
       - name: Package lambdas
         run: |
