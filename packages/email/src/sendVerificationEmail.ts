@@ -4,7 +4,7 @@ export async function sendVerificationEmail(email: string, token: string) {
   const resend = getResendClient();
   const url = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to: email,
     subject: "Verify your email",
@@ -14,4 +14,6 @@ export async function sendVerificationEmail(email: string, token: string) {
       <p>This link expires in 24 hours.</p>
     `,
   });
+
+  console.log("RESEND RESULT", result)
 }

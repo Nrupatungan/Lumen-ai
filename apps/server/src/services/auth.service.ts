@@ -16,7 +16,6 @@ export async function createEmailVerification(email: string) {
   });
 
   await sendVerificationEmail(email, token);
-  console.log("FRONTEND_URL =", process.env.FRONTEND_URL);
 }
 
 export async function createPasswordReset(userId: string, email: string) {
@@ -31,5 +30,4 @@ export async function createPasswordReset(userId: string, email: string) {
   });
 
   await sendPasswordResetEmail(email, token);
-  console.log("FRONTEND_URL =", process.env.FRONTEND_URL);
 }

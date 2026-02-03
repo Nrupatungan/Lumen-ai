@@ -1,4 +1,4 @@
-name: Deploy Workers (ECS)
+name: Build & Deploy Workers (ECS)
 
 on:
   push:
@@ -13,23 +13,57 @@ jobs:
   deploy-workers:
     runs-on: ubuntu-latest
 
+    env:
+      CLUSTER_NAME: lumen-prod-cluster
+      WORKER_REPO: lumen-prod-worker
+      AWS_REGION: ${{ vars.TF_VAR_AWS_REGION }}
+      ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      IMAGE_TAG: ${{ github.sha }}
+
     steps:
+      # ------------------------------
+      # Checkout
+      # ------------------------------
       - uses: actions/checkout@v4
 
+      # ------------------------------
+      # Node + pnpm
+      # ------------------------------
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - run: |
+      - name: Enable pnpm
+        run: |
           corepack enable
           corepack prepare pnpm@latest-10 --activate
 
-      - run: pnpm install --frozen-lockfile
+      # ------------------------------
+      # Cache pnpm
+      # ------------------------------
+      - name: Get pnpm store
+        id: pnpm-store
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
-      - run: pnpm --filter @repo/* build
-      - run: pnpm --filter workers build
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}          
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @repo/* build
+
+      - name: Build workers
+        run: pnpm --filter workers build
+
+      # ------------------------------
+      # AWS + ECR
+      # ------------------------------
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -38,32 +72,79 @@ jobs:
       - uses: aws-actions/amazon-ecr-login@v2
       - uses: docker/setup-buildx-action@v3
 
-      - name: Build & push workers
+      # ------------------------------
+      # Build & Push Worker Image
+      # ------------------------------
+      - name: Build & push workers image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/Dockerfile.workers
           push: true
           tags: |
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.TF_VAR_AWS_REGION }}.amazonaws.com/lumen-prod-worker:latest
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.TF_VAR_AWS_REGION }}.amazonaws.com/lumen-prod-worker:${{ github.sha }}
-
+            ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.WORKER_REPO }}:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Redeploy workers
+      - name: Verify worker image exists
         run: |
-          aws ecs update-service \
-            --cluster lumen-prod-cluster \
-            --service lumen-prod-text-extract \
-            --force-new-deployment
+          aws ecr describe-images \
+            --repository-name $WORKER_REPO \
+            --image-ids imageTag=$IMAGE_TAG \
+            --region $AWS_REGION
 
-          aws ecs update-service \
-            --cluster lumen-prod-cluster \
-            --service lumen-prod-chunk-embed \
-            --force-new-deployment
+      # ------------------------------
+      # Register + Deploy Task Definitions
+      # ------------------------------
+      - name: Deploy workers to ECS
+        run: |
+          IMAGE_URI="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$WORKER_REPO:$IMAGE_TAG"
 
-          aws ecs update-service \
-            --cluster lumen-prod-cluster \
-            --service lumen-prod-document-delete \
-            --force-new-deployment
+          deploy_service () {
+            SERVICE_NAME=$1
+            TASK_FAMILY=$2
+
+            echo "🚀 Deploying $SERVICE_NAME using $TASK_FAMILY"
+
+            aws ecs describe-task-definition \
+              --task-definition $TASK_FAMILY \
+              --query taskDefinition \
+              > taskdef.json
+
+            jq --arg IMAGE "$IMAGE_URI" '
+              .containerDefinitions[0].image = $IMAGE
+              | del(
+                  .taskDefinitionArn,
+                  .revision,
+                  .status,
+                  .requiresAttributes,
+                  .compatibilities,
+                  .registeredAt,
+                  .registeredBy
+                )
+            ' taskdef.json > taskdef.new.json
+
+            aws ecs register-task-definition \
+              --cli-input-json file://taskdef.new.json
+
+            aws ecs update-service \
+              --cluster $CLUSTER_NAME \
+              --service $SERVICE_NAME \
+              --task-definition $TASK_FAMILY
+          }
+
+          deploy_service lumen-prod-text-extract    lumen-prod-text-extract
+          deploy_service lumen-prod-chunk-embed     lumen-prod-chunk-embed
+          deploy_service lumen-prod-document-delete lumen-prod-document-delete
+
+      # ------------------------------
+      # Wait for Stability
+      # ------------------------------
+      - name: Wait for ECS services to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster $CLUSTER_NAME \
+            --services \
+              lumen-prod-text-extract \
+              lumen-prod-chunk-embed \
+              lumen-prod-document-delete
