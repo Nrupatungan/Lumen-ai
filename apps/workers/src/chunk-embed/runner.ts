@@ -1,5 +1,4 @@
-import "dotenv/config";
-
+import "./../utils/env.js";
 import {
   receiveMessages,
   deleteMessage,

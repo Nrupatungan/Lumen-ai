@@ -7,8 +7,10 @@ export default defineConfig({
   },
   format: ["esm"],
   target: "es2022",
+  platform: "node",
   splitting: false,
   sourcemap: true,
   clean: true,
   dts: false,
+  noExternal: [/^@repo\//],
 });

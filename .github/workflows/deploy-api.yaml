@@ -76,15 +76,42 @@ jobs:
             --region ${{ vars.TF_VAR_AWS_REGION }}
 
 
+      - name: Register new ECS task definition
+        run: |
+          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.TF_VAR_AWS_REGION }}.amazonaws.com/lumen-prod-api:${{ github.sha }}"
+
+          aws ecs describe-task-definition \
+            --task-definition lumen-prod-api \
+            --query taskDefinition \
+            > taskdef.json
+
+          jq --arg IMAGE "$IMAGE_URI" '
+            .containerDefinitions[0].image = $IMAGE
+            | del(
+                .taskDefinitionArn,
+                .revision,
+                .status,
+                .requiresAttributes,
+                .compatibilities,
+                .registeredAt,
+                .registeredBy
+              )
+          ' taskdef.json > taskdef.new.json
+
+          aws ecs register-task-definition \
+            --cli-input-json file://taskdef.new.json
+
+
       # ------------------------------
       # Deploy: ECS rolling update
       # ------------------------------
-      - name: Trigger ECS deployment
+      - name: Deploy new task definition
         run: |
           aws ecs update-service \
             --cluster lumen-prod-cluster \
             --service lumen-prod-api \
-            --force-new-deployment
+            --task-definition lumen-prod-api
+
 
       - name: Wait for ECS service stability
         run: |

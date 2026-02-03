@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./../utils/env.js";
 import { receiveMessages, deleteMessage } from "@repo/aws";
 import { handler } from "./handler.js";
 import { logger } from "@repo/observability";

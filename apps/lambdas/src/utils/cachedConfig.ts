@@ -19,10 +19,16 @@ let cachedConfig: any;
 export async function loadConfig() {
   if (cachedConfig) return cachedConfig;
 
+  const [mongo, url, token] = await Promise.all([
+    getSecret(process.env.MONGO_URI!),
+    getSecret(process.env.UPSTASH_REDIS_REST_URL!),
+    getSecret(process.env.UPSTASH_REDIS_REST_TOKEN!),
+  ]);
+
   cachedConfig = {
-    MONGO_URI: await getSecret(process.env.MONGO_URI!),
-    URL: await getSecret(process.env.UPSTASH_REDIS_REST_URL!),
-    TOKEN: await getSecret(process.env.UPSTASH_REDIS_REST_TOKEN!),
+    MONGO_URI: mongo,
+    URL: url,
+    TOKEN: token,
   };
 
   return cachedConfig;
