@@ -11,7 +11,6 @@ import {
   TextExtractMessage,
   OCRMessage,
 } from "@repo/queue";
-import { lambdaLogger } from "@repo/observability";
 import { PLAN_POLICY } from "@repo/policy-node";
 import { getUserPlan } from "@repo/db";
 import { loadConfig } from "../utils/cachedConfig.js";
@@ -29,7 +28,7 @@ export const handler = async (event: SQSEvent) => {
     try {
       payload = JSON.parse(record.body);
     } catch (err) {
-      lambdaLogger.error("Invalid SQS message body", { err });
+      console.error("Invalid SQS message body", { err });
       continue;
     }
 
@@ -60,7 +59,7 @@ export const handler = async (event: SQSEvent) => {
 
           await invalidateDocumentStatusRest(documentId, URL, TOKEN);
 
-          lambdaLogger.warn("Ingestion blocked by plan policy", {
+          console.warn("Ingestion blocked by plan policy", {
             jobId,
             documentId,
             userId,
@@ -79,7 +78,7 @@ export const handler = async (event: SQSEvent) => {
 
         await invalidateDocumentStatusRest(documentId, URL, TOKEN);
 
-        lambdaLogger.info("Routed to OCR pipeline", { jobId, documentId });
+        console.info("Routed to OCR pipeline", { jobId, documentId });
         continue;
       }
 
@@ -99,7 +98,7 @@ export const handler = async (event: SQSEvent) => {
 
         await invalidateDocumentStatusRest(documentId, URL, TOKEN);
 
-        lambdaLogger.info("Routed to text extraction pipeline", {
+        console.info("Routed to text extraction pipeline", {
           jobId,
           documentId,
           sourceType,
@@ -111,7 +110,7 @@ export const handler = async (event: SQSEvent) => {
       // 6. Unsupported source
       throw new Error(`Unsupported source type: ${sourceType}`);
     } catch (error) {
-      lambdaLogger.error("Ingestion routing failed", {
+      console.error("Ingestion routing failed", {
         error,
         jobId,
         documentId,

@@ -1,7 +1,6 @@
 import "./../utils/env.js";
 import { receiveMessages, deleteMessage } from "@repo/aws";
 import { handler } from "./handler.js";
-import { logger } from "@repo/observability";
 import { SQSEvent, SQSRecord } from "aws-lambda";
 
 const QUEUE_URL = process.env.DOCUMENT_INGEST_QUEUE_URL!;
@@ -20,7 +19,7 @@ async function pollOnce() {
 
   if (!messages.length) return;
 
-  logger.info(`[ingestion-router] received ${messages.length} messages`);
+  console.info(`[ingestion-router] received ${messages.length} messages`);
 
   const event: SQSEvent = {
     Records: messages.map(
@@ -52,13 +51,13 @@ async function pollOnce() {
 }
 
 async function start() {
-  logger.info("[ingestion-router] local worker started");
+  console.info("[ingestion-router] local worker started");
 
   while (true) {
     try {
       await pollOnce();
     } catch (err) {
-      logger.error("[ingestion-router] polling failed", { err });
+      console.error("[ingestion-router] polling failed", { err });
     }
 
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));

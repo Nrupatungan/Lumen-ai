@@ -35,9 +35,6 @@ importers:
       '@repo/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@repo/observability':
-        specifier: workspace:*
-        version: link:../../packages/observability
       '@repo/policy-node':
         specifier: workspace:*
         version: link:../../packages/policy-node
