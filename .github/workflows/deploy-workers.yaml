@@ -14,11 +14,14 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      CLUSTER_NAME: lumen-prod-cluster
-      WORKER_REPO: lumen-prod-worker
-      AWS_REGION: ${{ vars.TF_VAR_AWS_REGION }}
-      ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      IMAGE_TAG: ${{ github.sha }}
+      PROJECT:        ${{ vars.TF_VAR_PROJECT }}
+      ENVIRONMENT:    ${{ vars.TF_VAR_ENVIRONMENT }}
+      AWS_REGION:     ${{ vars.TF_VAR_AWS_REGION }}
+      ACCOUNT_ID:     ${{ secrets.AWS_ACCOUNT_ID }}
+
+      CLUSTER_NAME:   ${{ vars.TF_VAR_PROJECT }}-${{ vars.TF_VAR_ENVIRONMENT }}-cluster
+      WORKER_REPO:    ${{ vars.TF_VAR_PROJECT }}-${{ vars.TF_VAR_ENVIRONMENT }}-worker
+      IMAGE_TAG:      ${{ github.sha }}
 
     steps:
       # ------------------------------
@@ -48,7 +51,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
-          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}          
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
@@ -67,7 +70,7 @@ jobs:
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ vars.TF_VAR_AWS_REGION }}
+          aws-region:            ${{ env.AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v2
       - uses: docker/setup-buildx-action@v3
@@ -133,9 +136,9 @@ jobs:
               --task-definition $TASK_FAMILY
           }
 
-          deploy_service lumen-prod-text-extract    lumen-prod-text-extract
-          deploy_service lumen-prod-chunk-embed     lumen-prod-chunk-embed
-          deploy_service lumen-prod-document-delete lumen-prod-document-delete
+          deploy_service "$PROJECT-$ENVIRONMENT-text-extract"    "$PROJECT-$ENVIRONMENT-text-extract"
+          deploy_service "$PROJECT-$ENVIRONMENT-chunk-embed"     "$PROJECT-$ENVIRONMENT-chunk-embed"
+          deploy_service "$PROJECT-$ENVIRONMENT-document-delete" "$PROJECT-$ENVIRONMENT-document-delete"
 
       # ------------------------------
       # Wait for Stability
@@ -145,6 +148,6 @@ jobs:
           aws ecs wait services-stable \
             --cluster $CLUSTER_NAME \
             --services \
-              lumen-prod-text-extract \
-              lumen-prod-chunk-embed \
-              lumen-prod-document-delete
+              "$PROJECT-$ENVIRONMENT-text-extract" \
+              "$PROJECT-$ENVIRONMENT-chunk-embed" \
+              "$PROJECT-$ENVIRONMENT-document-delete"

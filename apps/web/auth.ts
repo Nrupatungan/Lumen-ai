@@ -37,6 +37,19 @@ const authResult = NextAuth({
     strategy: "jwt",
   },
 
+  cookies: {
+    sessionToken: {
+      name: "__Secure-authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "none",       // 👈 REQUIRED for cross-subdomain
+        secure: true,           // 👈 REQUIRED for SameSite=none
+        path: "/",
+        domain: ".lumen-ai.space", // 👈 THIS IS THE FIX
+      },
+    }
+  },
+
   jwt: {
     encode: async ({ token }) => {
       return jwt.sign(token!, process.env.AUTH_SECRET!, {

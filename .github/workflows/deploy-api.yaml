@@ -1,4 +1,5 @@
 name: Build & Deploy API (ECS)
+
 on:
   push:
     branches: [main]
@@ -11,6 +12,19 @@ on:
 jobs:
   deploy-api:
     runs-on: ubuntu-latest
+
+    env:
+      PROJECT:          ${{ vars.TF_VAR_PROJECT }}
+      ENVIRONMENT:      ${{ vars.TF_VAR_ENVIRONMENT }}
+      AWS_REGION:       ${{ vars.TF_VAR_AWS_REGION }}
+      ACCOUNT_ID:       ${{ secrets.AWS_ACCOUNT_ID }}
+
+      CLUSTER_NAME:     ${{ vars.TF_VAR_PROJECT }}-${{ vars.TF_VAR_ENVIRONMENT }}-cluster
+      API_SERVICE:      ${{ vars.TF_VAR_PROJECT }}-${{ vars.TF_VAR_ENVIRONMENT }}-api
+      API_TASK_FAMILY:  ${{ vars.TF_VAR_PROJECT }}-${{ vars.TF_VAR_ENVIRONMENT }}-api
+      API_REPO:         ${{ vars.TF_VAR_PROJECT }}-${{ vars.TF_VAR_ENVIRONMENT }}-api
+
+      IMAGE_TAG:        ${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v4
@@ -39,24 +53,31 @@ jobs:
           path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
           key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @repo/* build
-      - run: pnpm --filter server build
+      - name: Build shared packages
+        run: pnpm --filter @repo/* build
+
+      - name: Build API
+        run: pnpm --filter server build
 
       # ------------------------------
       # AWS + ECR
       # ------------------------------
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ vars.TF_VAR_AWS_REGION }}
+          aws-region:            ${{ env.AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v2
-
       - uses: docker/setup-buildx-action@v3
 
+      # ------------------------------
+      # Build & Push API Image
+      # ------------------------------
       - name: Build & push API image
         uses: docker/build-push-action@v5
         with:
@@ -64,24 +85,26 @@ jobs:
           file: docker/Dockerfile.api
           push: true
           tags: |
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.TF_VAR_AWS_REGION }}.amazonaws.com/lumen-prod-api:${{ github.sha }}
+            ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.API_REPO }}:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Verify API image exists in ECR
         run: |
           aws ecr describe-images \
-            --repository-name lumen-prod-api \
-            --image-ids imageTag=${{ github.sha }} \
-            --region ${{ vars.TF_VAR_AWS_REGION }}
+            --repository-name $API_REPO \
+            --image-ids imageTag=$IMAGE_TAG \
+            --region $AWS_REGION
 
-
+      # ------------------------------
+      # Register new ECS task definition
+      # ------------------------------
       - name: Register new ECS task definition
         run: |
-          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.TF_VAR_AWS_REGION }}.amazonaws.com/lumen-prod-api:${{ github.sha }}"
+          IMAGE_URI="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$API_REPO:$IMAGE_TAG"
 
           aws ecs describe-task-definition \
-            --task-definition lumen-prod-api \
+            --task-definition $API_TASK_FAMILY \
             --query taskDefinition \
             > taskdef.json
 
@@ -101,24 +124,25 @@ jobs:
           aws ecs register-task-definition \
             --cli-input-json file://taskdef.new.json
 
-
       # ------------------------------
       # Deploy: ECS rolling update
       # ------------------------------
       - name: Deploy new task definition
         run: |
           aws ecs update-service \
-            --cluster lumen-prod-cluster \
-            --service lumen-prod-api \
-            --task-definition lumen-prod-api
-
+            --cluster $CLUSTER_NAME \
+            --service $API_SERVICE \
+            --task-definition $API_TASK_FAMILY
 
       - name: Wait for ECS service stability
         run: |
           aws ecs wait services-stable \
-            --cluster lumen-prod-cluster \
-            --services lumen-prod-api
+            --cluster $CLUSTER_NAME \
+            --services $API_SERVICE
 
+      # ------------------------------
+      # Health Check
+      # ------------------------------
       - name: Verify API health endpoint
         run: |
           set -e
@@ -143,5 +167,3 @@ jobs:
 
           echo "❌ API failed health check"
           exit 1
-
-
