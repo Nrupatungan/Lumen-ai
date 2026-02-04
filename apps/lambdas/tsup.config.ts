@@ -5,7 +5,7 @@ export default defineConfig({
     "ingestion-router/handler": "src/ingestion-router/handler.ts",
     "usage-sync/handler": "src/usage-sync/handler.ts",
   },
-  format: ["esm"],
+  format: ["cjs"], // 👈 IMPORTANT
   target: "es2022",
   platform: "node",
   splitting: false,
