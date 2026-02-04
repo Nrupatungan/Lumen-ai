@@ -293,7 +293,11 @@ resource "aws_ecs_task_definition" "worker_document_delete" {
         { 
           name = "PINECONE_API_KEY"
           valueFrom = data.aws_secretsmanager_secret.pinecone_api_key.arn 
-        }
+        },
+        { 
+          name = "REDIS_URL"
+          valueFrom = data.aws_secretsmanager_secret.redis_url.arn 
+        },
       ]
 
       logConfiguration = {

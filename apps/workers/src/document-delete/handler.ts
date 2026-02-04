@@ -42,9 +42,6 @@ export const handler = async (event: SQSEvent) => {
       logger.info("Document deleted successfully", { documentId });
     } catch (error) {
       logger.error("Document deletion failed", { error, documentId });
-
-      // IMPORTANT: do NOT rethrow
-      // deletion worker must be idempotent and non-blocking
     }
   }
 };
