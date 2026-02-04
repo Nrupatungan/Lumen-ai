@@ -4,7 +4,7 @@ import {
   invalidateUsageRest,
   invalidateUsageDashboardRest,
 } from "@repo/cache/rest";
-import { logger } from "@repo/observability";
+import { lambdaLogger } from "@repo/observability";
 import { loadConfig } from "../utils/cachedConfig.js";
 
 // Redis key pattern: usage:{userId}:{YYYY-MM-DD}
@@ -32,7 +32,7 @@ export async function handler() {
   await connectDB(MONGO_URI, process.env.MONGO_DB_NAME!);
   const restRedis = getRestRedisClient(URL, TOKEN);
 
-  logger.info("[usage-sync] starting Redis → Mongo sync");
+  lambdaLogger.info("[usage-sync] starting Redis → Mongo sync");
 
   let cursor = "0";
 
@@ -81,8 +81,8 @@ export async function handler() {
       }
     } while (cursor !== "0");
 
-    logger.info("[usage-sync] completed successfully");
+    lambdaLogger.info("[usage-sync] completed successfully");
   } catch (error) {
-    logger.error("[usage-sync] failed", { error });
+    lambdaLogger.error("[usage-sync] failed", { error });
   }
 }
