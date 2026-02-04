@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Model, QueryFilter } from "mongoose";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { Subscription } from "./subscription.model.js";
 import { Payment } from "./payment.model.js";
 import { DocumentModel } from "./document.model.js";

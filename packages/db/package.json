@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@repo/policy-node": "workspace:*",
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "mongoose": "^9.0.1"
   }
 }
