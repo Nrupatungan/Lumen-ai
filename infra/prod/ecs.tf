@@ -134,7 +134,8 @@ resource "aws_ecs_task_definition" "worker_text_extract" {
         # SQS
         { name = "TEXT_EXTRACT_QUEUE_URL", value = aws_sqs_queue.main["text-extract"].url },
         { name = "TEXT_EXTRACT_QUEUE_ARN", value = aws_sqs_queue.main["text-extract"].arn },
-        { name = "CHUNK_EMBED_QUEUE_ARN", value = aws_sqs_queue.main["chunk-embed"].arn },
+
+        { name = "CHUNK_EMBED_QUEUE_URL", value = aws_sqs_queue.main["chunk-embed"].url },
 
         # S3
         { name = "S3_BUCKET_NAME", value = aws_s3_bucket.documents.bucket },
@@ -148,6 +149,7 @@ resource "aws_ecs_task_definition" "worker_text_extract" {
         { name = "S3_SIGNED_URL_EXPIRY", value = "43200" },
         { name = "MAX_WAIT_MS", value = "25000" },
       ]
+
 
       secrets = [
         { 

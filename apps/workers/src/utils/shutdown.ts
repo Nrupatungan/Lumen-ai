@@ -37,5 +37,5 @@ export function setupGracefulShutdown() {
   };
 
   process.on("SIGTERM", shutdown);
-  process.on("SIGINT", shutdown); // local Ctrl+C
+  process.on("SIGINT", shutdown);
 }
