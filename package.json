@@ -20,5 +20,10 @@
   "packageManager": "pnpm@10.28.2",
   "engines": {
     "node": ">=18"
+  },
+  "pnpm": {
+    "overrides": {
+      "pdf-parse": "1.1.1"
+    }
   }
 }

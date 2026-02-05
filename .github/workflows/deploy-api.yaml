@@ -100,6 +100,7 @@ jobs:
       # Register new ECS task definition
       # ------------------------------
       - name: Register new ECS task definition
+        id: register-task
         run: |
           IMAGE_URI="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$API_REPO:$IMAGE_TAG"
 
@@ -121,8 +122,13 @@ jobs:
               )
           ' taskdef.json > taskdef.new.json
 
-          aws ecs register-task-definition \
-            --cli-input-json file://taskdef.new.json
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://taskdef.new.json \
+            --query "taskDefinition.taskDefinitionArn" \
+            --output text)
+
+          echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
 
       # ------------------------------
       # Deploy: ECS rolling update
@@ -132,7 +138,8 @@ jobs:
           aws ecs update-service \
             --cluster $CLUSTER_NAME \
             --service $API_SERVICE \
-            --task-definition $API_TASK_FAMILY
+            --task-definition ${{ steps.register-task.outputs.NEW_TASK_DEF_ARN }}
+
 
       - name: Wait for ECS service stability
         run: |

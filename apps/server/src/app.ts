@@ -24,8 +24,6 @@ if (!Array.isArray(allowedOrigins)) {
   throw new Error("CORS_WHITELIST must be an array");
 }
 
-console.log("CORS whitelist:", allowedOrigins);
-
 // CORS middleware
 app.use(
   cors({

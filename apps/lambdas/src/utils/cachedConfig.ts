@@ -3,8 +3,17 @@ import {
   GetSecretValueCommand,
 } from "@aws-sdk/client-secrets-manager";
 
+const isLocal = !!process.env.AWS_ENDPOINT;
+
 const client = new SecretsManagerClient({
   region: String(process.env.AWS_REGION),
+  endpoint: process.env.AWS_ENDPOINT, // 👈 THIS makes it hit LocalStack
+  credentials: isLocal
+    ? {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || "test",
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "test",
+      }
+    : undefined, // in prod, let AWS SDK use IAM role / real creds
 });
 
 async function getSecret(name: string) {
