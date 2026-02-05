@@ -1,3 +1,5 @@
+"use client";
+
 // NEW import
 import { DocumentItem } from "@/hooks/useDocuments";
 import { useJobProgress } from "@/hooks/useJobProgress";
@@ -5,6 +7,7 @@ import { Chip, LinearProgress, Stack, Typography } from "@mui/material";
 
 // NEW component (place above DocumentsStack)
 export default function DocumentStatus({ doc }: { doc: DocumentItem }) {
+  console.log("DocumentStatus rendered", doc.id, doc.status);
   const isProcessing =
     doc.status === "processing" && Boolean(doc.ingestion?.jobId);
 

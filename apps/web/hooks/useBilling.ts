@@ -1,3 +1,5 @@
+"use client";
+
 import { api } from "@/lib/apiClient";
 import { Plan } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";

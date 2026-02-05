@@ -1,3 +1,5 @@
+"use client";
+
 // React hook for subscribing to ingestion job progress via WebSocket
 import { apiClient } from "@/lib/apiClient";
 import { getWebSocketUrl } from "@/utils";
@@ -28,6 +30,7 @@ export function useJobProgress({
 
   useEffect(() => {
     if (!jobId || !enabled) {
+      console.log("WS skipped: missing jobId or disabled");
       socketRef.current?.close();
       socketRef.current = null;
       subscribedJobRef.current = null;
@@ -42,7 +45,9 @@ export function useJobProgress({
     let cancelled = false;
 
     async function connect() {
+      console.log("Fetching WS token...");
       const token = await apiClient.getWsToken();
+
       if (!token || cancelled) return;
 
       const wsUrl = getWebSocketUrl(
