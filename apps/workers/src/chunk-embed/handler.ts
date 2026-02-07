@@ -118,10 +118,11 @@ export const handler = async (event: SQSEvent) => {
       });
 
       await DocumentModel.findByIdAndUpdate(documentId, {
-        status: "processed",
+        status: "ready",
       });
 
       // 7. Final Redis updates
+      await setJobStatus(jobId, "completed");
       await setJobStage(jobId, "completed");
       await setJobProgress(jobId, 100);
       await expireJob(jobId);

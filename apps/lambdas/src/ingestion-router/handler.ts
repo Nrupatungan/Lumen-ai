@@ -40,10 +40,14 @@ export const handler = async (event: SQSEvent) => {
       const policy = PLAN_POLICY[plan];
 
       // 2. Authoritative Mongo state
-      await IngestionJob.findByIdAndUpdate(jobId, { status: "processing" });
-      await DocumentModel.findByIdAndUpdate(documentId, {
-        status: "processing",
-      });
+      await IngestionJob.findOneAndUpdate(
+        { _id: jobId, status: { $ne: "completed" } },
+        { status: "processing" },
+      );
+      await DocumentModel.findOneAndUpdate(
+        { _id: documentId, status: { $ne: "ready" } },
+        { status: "processing" },
+      );
 
       await invalidateDocumentStatusRest(documentId, URL, TOKEN);
 

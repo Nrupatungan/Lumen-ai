@@ -10,7 +10,8 @@
         "AUTH_GOOGLE_SECRET",
         "AUTH_GITHUB_ID",
         "AUTH_GITHUB_SECRET",
-        "NEXTAUTH_URL"
+        "NEXTAUTH_URL",
+        "DOMAIN"
       ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [

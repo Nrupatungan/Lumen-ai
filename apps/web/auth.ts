@@ -45,7 +45,7 @@ const authResult = NextAuth({
         sameSite: "none", // 👈 REQUIRED for cross-subdomain
         secure: true, // 👈 REQUIRED for SameSite=none
         path: "/",
-        domain: ".lumen-ai.space", // 👈 THIS IS THE FIX
+        domain: process.env.DOMAIN!,
       },
     },
   },

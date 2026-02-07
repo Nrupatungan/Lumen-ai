@@ -29,3 +29,27 @@ export interface ChatMessage {
   status?: ChatMessageStatus;
   sources?: RagSource[];
 }
+
+export type TodayUsage = {
+  totalTokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  requestCount: number;
+};
+
+export type UsageDashboardSeries = {
+  date: string;
+  totalTokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  requestCount: number;
+};
+
+export type UsageDashboardResponse = {
+  range: {
+    startDate: string;
+    endDate: string;
+  };
+  days: number;
+  series: UsageDashboardSeries[];
+};

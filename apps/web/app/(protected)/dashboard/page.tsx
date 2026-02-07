@@ -1,3 +1,10 @@
+import { UsageDashboard } from "@/components/dashboard/UsageDashboard";
+import { Container } from "@mui/material";
+
 export default function DashboardPage() {
-  return <h1>Protected Dashboard Page ✅</h1>;
+  return (
+    <Container maxWidth="lg" sx={{ py: 10 }}>
+      <UsageDashboard />
+    </Container>
+  );
 }

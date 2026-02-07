@@ -7,7 +7,7 @@ import { Chip, LinearProgress, Stack, Typography } from "@mui/material";
 
 // NEW component (place above DocumentsStack)
 export default function DocumentStatus({ doc }: { doc: DocumentItem }) {
-  const isProcessing = Boolean(doc.ingestion?.jobId) && doc.status !== "completed" && doc.status !== "failed";
+  const isProcessing = doc.status === "processing";
 
   const { progress, stage, error } = useJobProgress({
     jobId: doc.ingestion?.jobId,
@@ -24,7 +24,7 @@ export default function DocumentStatus({ doc }: { doc: DocumentItem }) {
             ? "success"
             : doc.status === "failed"
               ? "error"
-              : "default"
+              : "warning"
         }
       />
     );

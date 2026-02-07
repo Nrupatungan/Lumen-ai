@@ -35,6 +35,17 @@ export const ingestionRedisKeys = {
   documentStage: (docId: string) => `document:stage:${docId}`,
 };
 
+export async function deleteJobKeys(jobId: string) {
+  const client = getCommandRedisClient();
+  const keys = [
+    ingestionRedisKeys.jobStatus(jobId),
+    ingestionRedisKeys.jobStage(jobId),
+    ingestionRedisKeys.jobProgress(jobId),
+    ingestionRedisKeys.jobError(jobId),
+  ];
+  await client.del(...keys);
+}
+
 /* -------------------------------------------------
  * Write helpers (best-effort)
  * ------------------------------------------------- */

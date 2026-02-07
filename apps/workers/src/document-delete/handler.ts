@@ -1,7 +1,11 @@
 import { SQSEvent } from "aws-lambda";
 import { deleteObject } from "@repo/aws";
 import { connectDB, DocumentModel, IngestionJob } from "@repo/db";
-import { expireJob, invalidateDocuments } from "@repo/cache";
+import {
+  deleteJobKeys,
+  invalidateDocuments,
+  invalidateDocumentStatus,
+} from "@repo/cache";
 import { logger } from "@repo/observability";
 import { getUserPlan } from "@repo/db";
 import { createRagClients } from "@repo/rag-core";
@@ -29,15 +33,26 @@ export const handler = async (event: SQSEvent) => {
       }
 
       // 3. Delete Mongo records
+      const jobs = await IngestionJob.find({ documentId }).select("_id").lean();
+
+      if (jobs.length === 0) {
+        logger.warn("No jobs found for document during delete", { documentId });
+      }
+
       await IngestionJob.deleteMany({ documentId });
       await DocumentModel.findOneAndDelete({
         _id: documentId,
         userId,
       });
 
-      // 4. Cleanup Redis
-      await expireJob(documentId);
+      // 4. Cleanup Redis (correct keys)
+      for (const job of jobs) {
+        await deleteJobKeys(job._id.toString());
+      }
+
+      // Also invalidate document lists & status
       await invalidateDocuments(userId);
+      await invalidateDocumentStatus(documentId); // if you have this helper
 
       logger.info("Document deleted successfully", { documentId });
     } catch (error) {

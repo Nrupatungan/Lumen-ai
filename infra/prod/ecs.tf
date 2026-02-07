@@ -180,8 +180,8 @@ resource "aws_ecs_task_definition" "worker_chunk_embed" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
 
-  cpu    = 1024
-  memory = 3072
+  cpu    = 512
+  memory = 1024
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
   task_role_arn      = aws_iam_role.ecs_task.arn
@@ -320,15 +320,21 @@ resource "aws_ecs_service" "text_extract" {
   name            = "${var.project}-${var.environment}-text-extract"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker_text_extract.arn
-  launch_type     = "FARGATE"
 
-  desired_count = 1
+  desired_count = 0
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
+
 
   network_configuration {
-    subnets         = module.vpc.private_subnets
-    security_groups = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
+    subnets          = module.vpc.public_subnets
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
   }
+
 
   lifecycle {
     ignore_changes = [task_definition]
@@ -339,15 +345,20 @@ resource "aws_ecs_service" "chunk_embed" {
   name            = "${var.project}-${var.environment}-chunk-embed"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker_chunk_embed.arn
-  launch_type     = "FARGATE"
 
-  desired_count = 1
+  desired_count = 0
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
 
   network_configuration {
-    subnets         = module.vpc.private_subnets
-    security_groups = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
+    subnets          = module.vpc.public_subnets
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
   }
+
 
   lifecycle {
     ignore_changes = [task_definition]
@@ -358,15 +369,20 @@ resource "aws_ecs_service" "document_delete" {
   name            = "${var.project}-${var.environment}-document-delete"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker_document_delete.arn
-  launch_type     = "FARGATE"
 
-  desired_count = 1
+  desired_count = 0
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
 
   network_configuration {
-    subnets         = module.vpc.private_subnets
-    security_groups = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
+    subnets          = module.vpc.public_subnets
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
   }
+
 
   lifecycle {
     ignore_changes = [task_definition]
@@ -382,18 +398,28 @@ resource "aws_ecs_service" "api" {
   name            = "${var.project}-${var.environment}-api"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.api.arn
-  launch_type     = "FARGATE"
 
-  desired_count = 2
+  desired_count = 1
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 2
+  }
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    weight            = 1
+  }
 
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
 
   network_configuration {
-    subnets         = module.vpc.private_subnets
-    security_groups = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
+    subnets          = module.vpc.public_subnets
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
   }
+
 
   enable_execute_command = true
 
@@ -418,7 +444,7 @@ resource "aws_ecs_service" "api" {
 ########################################
 resource "aws_appautoscaling_target" "text_extract" {
   max_capacity       = 10
-  min_capacity       = 1
+  min_capacity       = 0
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.text_extract.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -510,7 +536,7 @@ resource "aws_cloudwatch_metric_alarm" "text_extract_scale_in_alarm" {
 
 resource "aws_appautoscaling_target" "chunk_embed" {
   max_capacity       = 5
-  min_capacity       = 1
+  min_capacity       = 0
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.chunk_embed.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -600,7 +626,7 @@ resource "aws_cloudwatch_metric_alarm" "chunk_embed_scale_in_alarm" {
 
 resource "aws_appautoscaling_target" "document_delete" {
   max_capacity       = 3
-  min_capacity       = 1
+  min_capacity       = 0
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.document_delete.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -692,8 +718,8 @@ resource "aws_cloudwatch_metric_alarm" "document_delete_scale_in_alarm" {
 # ECS SERVICE — API AUTOSCALING
 ########################################
 resource "aws_appautoscaling_target" "api" {
-  max_capacity       = 6
-  min_capacity       = 2
+  max_capacity       = 2
+  min_capacity       = 1
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.api.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"

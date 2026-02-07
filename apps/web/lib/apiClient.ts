@@ -1,5 +1,6 @@
 import axios from "axios";
 import { OrderType, PaymentVerificaitonType } from "./validation/payment";
+import { TodayUsage, UsageDashboardResponse } from "./types";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BACKEND_URL!,
@@ -49,6 +50,22 @@ class ApiClient {
   async getConversationMessages<T>(conversationId: string) {
     const res = await api.get(`/chat/conversations/${conversationId}/messages`);
     return res.data as T;
+  }
+
+  async fetchUsageDashboard(days: number): Promise<UsageDashboardResponse> {
+    const res = await api.get("/usage/dashboard", {
+      params: { days },
+    });
+
+    // backend returns { data, source }
+    return res.data.data;
+  }
+
+  async fetchTodayUsage(): Promise<TodayUsage> {
+    const res = await api.get("/usage");
+
+    // backend returns { usage, source }
+    return res.data.usage;
   }
 }
 
