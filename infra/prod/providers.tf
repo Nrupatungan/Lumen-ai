@@ -18,7 +18,7 @@ terraform {
     bucket         = "lumen-prod-tf-state-12345"
     key            = "prod/terraform.tfstate"
     region         = "ap-south-1"
-    use_lockfile   = true
+    dynamodb_table = "terraform-locks"
     encrypt        = true
   }
 }
