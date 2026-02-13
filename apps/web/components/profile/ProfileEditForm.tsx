@@ -46,7 +46,7 @@ export default function ProfileEditForm({ user, onCancel, onSuccess }: Props) {
 
     if (name !== user.name) formData.append("name", name);
 
-    await api.put("/users/me", formData);
+    await api.patch("/users/me", formData);
     setLoading(false);
     onSuccess();
   }
