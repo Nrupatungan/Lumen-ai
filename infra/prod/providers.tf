@@ -15,10 +15,10 @@ provider "aws" {
 
 terraform {
   backend "s3" {
-    bucket         = "lumen-prod-terraform-state-12345"
+    bucket         = "lumen-prod-tf-state-12345"
     key            = "prod/terraform.tfstate"
-    region         = "eu-north-1"
-    dynamodb_table = "terraform-locks"
+    region         = "ap-south-1"
+    use_lockfile   = true
     encrypt        = true
   }
 }
