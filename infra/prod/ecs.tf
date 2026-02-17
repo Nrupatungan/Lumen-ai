@@ -321,7 +321,7 @@ resource "aws_ecs_service" "text_extract" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker_text_extract.arn
 
-  desired_count = 0
+  desired_count = 1
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
@@ -346,7 +346,7 @@ resource "aws_ecs_service" "chunk_embed" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker_chunk_embed.arn
 
-  desired_count = 0
+  desired_count = 1
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
