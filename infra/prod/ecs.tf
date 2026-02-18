@@ -444,7 +444,7 @@ resource "aws_ecs_service" "api" {
 ########################################
 resource "aws_appautoscaling_target" "text_extract" {
   max_capacity       = 10
-  min_capacity       = 0
+  min_capacity       = 1
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.text_extract.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -536,7 +536,7 @@ resource "aws_cloudwatch_metric_alarm" "text_extract_scale_in_alarm" {
 
 resource "aws_appautoscaling_target" "chunk_embed" {
   max_capacity       = 5
-  min_capacity       = 0
+  min_capacity       = 1
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.chunk_embed.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -626,7 +626,7 @@ resource "aws_cloudwatch_metric_alarm" "chunk_embed_scale_in_alarm" {
 
 resource "aws_appautoscaling_target" "document_delete" {
   max_capacity       = 3
-  min_capacity       = 0
+  min_capacity       = 1
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.document_delete.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
