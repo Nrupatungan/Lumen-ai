@@ -321,7 +321,7 @@ resource "aws_ecs_service" "text_extract" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker_text_extract.arn
 
-  desired_count = 1
+  desired_count = 0
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
@@ -346,7 +346,7 @@ resource "aws_ecs_service" "chunk_embed" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker_chunk_embed.arn
 
-  desired_count = 1
+  desired_count = 0
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
@@ -444,7 +444,7 @@ resource "aws_ecs_service" "api" {
 ########################################
 resource "aws_appautoscaling_target" "text_extract" {
   max_capacity       = 10
-  min_capacity       = 1
+  min_capacity       = 0
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.text_extract.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -536,7 +536,7 @@ resource "aws_cloudwatch_metric_alarm" "text_extract_scale_in_alarm" {
 
 resource "aws_appautoscaling_target" "chunk_embed" {
   max_capacity       = 5
-  min_capacity       = 1
+  min_capacity       = 0
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.chunk_embed.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -626,7 +626,7 @@ resource "aws_cloudwatch_metric_alarm" "chunk_embed_scale_in_alarm" {
 
 resource "aws_appautoscaling_target" "document_delete" {
   max_capacity       = 3
-  min_capacity       = 1
+  min_capacity       = 0
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.document_delete.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -719,7 +719,7 @@ resource "aws_cloudwatch_metric_alarm" "document_delete_scale_in_alarm" {
 ########################################
 resource "aws_appautoscaling_target" "api" {
   max_capacity       = 2
-  min_capacity       = 1
+  min_capacity       = 0
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.api.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
